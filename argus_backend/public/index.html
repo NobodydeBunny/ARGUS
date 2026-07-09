@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Argus UI Analyzer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <section class="panel">
+      <h1>Argus UI Analyzer</h1>
+      <p>Analyze a UI design using basic UI rules and generate a report.</p>
+
+      <form id="analysisForm">
+        <label>
+          Design Name
+          <input type="text" id="designName" placeholder="Example: Login Page" required />
+        </label>
+
+        <label>
+          File Type
+          <input type="text" id="fileType" value="Figma" required />
+        </label>
+
+        <label>
+          Font Size
+          <input type="number" id="fontSize" placeholder="Example: 10" required />
+        </label>
+
+        <label>
+          Contrast Ratio
+          <input type="number" step="0.1" id="contrastRatio" placeholder="Example: 3.2" required />
+        </label>
+
+        <label>
+          Spacing
+          <input type="number" id="spacing" placeholder="Example: 4" required />
+        </label>
+
+        <button type="submit">Analyze Design</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Analysis Result</h2>
+      <div id="analysisResult" class="result-box">No analysis yet.</div>
+
+      <button id="generateReportBtn" disabled>Generate Report</button>
+    </section>
+
+    <section class="panel">
+      <h2>Report</h2>
+      <div id="reportResult" class="result-box">No report yet.</div>
+
+      <a id="exportLink" class="download-link hidden" href="#" target="_blank">
+        Export Report
+      </a>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

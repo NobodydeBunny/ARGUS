@@ -1,0 +1,315 @@
+{
+  "samples": [
+    {
+      "sampleId": "test_modal_001",
+      "description": "Modal-like frame with no close option.",
+      "metadataFeatures": {
+        "isModalLike": true,
+        "hasExitControl": false,
+        "hasDestructiveAction": false,
+        "hasUndoOption": false,
+        "hasConfirmationDialog": false,
+        "controlDensity": 0.48,
+        "spacingDeviation": 0.14,
+        "alignmentDeviation": 0.12,
+        "cornerRadiusDeviation": 0.1,
+        "colorPatternDeviation": 0.1,
+        "sameColorDifferentActions": false,
+        "errorContrastRatio": null
+      },
+      "expectedLabels": [
+        "modal_without_exit",
+        "missing_exit_control"
+      ]
+    },
+    {
+      "sampleId": "test_spacing_001",
+      "description": "Repeated components use inconsistent spacing.",
+      "metadataFeatures": {
+        "isModalLike": false,
+        "hasExitControl": true,
+        "hasDestructiveAction": false,
+        "hasUndoOption": false,
+        "hasConfirmationDialog": false,
+        "controlDensity": 0.34,
+        "spacingDeviation": 0.8,
+        "alignmentDeviation": 0.2,
+        "cornerRadiusDeviation": 0.12,
+        "colorPatternDeviation": 0.1,
+        "sameColorDifferentActions": false,
+        "errorContrastRatio": null
+      },
+      "expectedLabels": [
+        "spacing_inconsistency"
+      ]
+    },
+    {
+      "sampleId": "test_shape_001",
+      "description": "Similar buttons use different shape and corner radius.",
+      "metadataFeatures": {
+        "isModalLike": false,
+        "hasExitControl": true,
+        "hasDestructiveAction": false,
+        "hasUndoOption": false,
+        "hasConfirmationDialog": false,
+        "controlDensity": 0.38,
+        "spacingDeviation": 0.18,
+        "alignmentDeviation": 0.2,
+        "cornerRadiusDeviation": 0.79,
+        "colorPatternDeviation": 0.1,
+        "sameColorDifferentActions": false,
+        "errorContrastRatio": null
+      },
+      "expectedLabels": [
+        "button_shape_inconsistency"
+      ]
+    },
+    {
+      "sampleId": "test_alignment_001",
+      "description": "Several elements break the dominant alignment pattern.",
+      "metadataFeatures": {
+        "isModalLike": false,
+        "hasExitControl": true,
+        "hasDestructiveAction": false,
+        "hasUndoOption": false,
+        "hasConfirmationDialog": false,
+        "controlDensity": 0.41,
+        "spacingDeviation": 0.2,
+        "alignmentDeviation": 0.84,
+        "cornerRadiusDeviation": 0.12,
+        "colorPatternDeviation": 0.1,
+        "sameColorDifferentActions": false,
+        "errorContrastRatio": null
+      },
+      "expectedLabels": [
+        "alignment_inconsistency"
+      ]
+    },
+    {
+      "sampleId": "test_overload_001",
+      "description": "Screen has too many controls and weak hierarchy.",
+      "metadataFeatures": {
+        "isModalLike": false,
+        "hasExitControl": true,
+        "hasDestructiveAction": false,
+        "hasUndoOption": false,
+        "hasConfirmationDialog": false,
+        "controlDensity": 0.91,
+        "spacingDeviation": 0.44,
+        "alignmentDeviation": 0.35,
+        "cornerRadiusDeviation": 0.2,
+        "colorPatternDeviation": 0.12,
+        "sameColorDifferentActions": false,
+        "errorContrastRatio": null
+      },
+      "expectedLabels": [
+        "overloaded_screen"
+      ]
+    },
+    {
+      "sampleId": "test_color_same_action_001",
+      "description": "Same action uses different colors across screens.",
+      "metadataFeatures": {
+        "isModalLike": false,
+        "hasExitControl": true,
+        "hasDestructiveAction": false,
+        "hasUndoOption": false,
+        "hasConfirmationDialog": false,
+        "controlDensity": 0.31,
+        "spacingDeviation": 0.11,
+        "alignmentDeviation": 0.15,
+        "cornerRadiusDeviation": 0.1,
+        "colorPatternDeviation": 0.82,
+        "sameColorDifferentActions": false,
+        "errorContrastRatio": null
+      },
+      "expectedLabels": [
+        "color_inconsistency"
+      ]
+    },
+    {
+      "sampleId": "test_color_different_actions_001",
+      "description": "Different actions use the same visual color.",
+      "metadataFeatures": {
+        "isModalLike": false,
+        "hasExitControl": true,
+        "hasDestructiveAction": false,
+        "hasUndoOption": false,
+        "hasConfirmationDialog": false,
+        "controlDensity": 0.31,
+        "spacingDeviation": 0.11,
+        "alignmentDeviation": 0.15,
+        "cornerRadiusDeviation": 0.1,
+        "colorPatternDeviation": 0.22,
+        "sameColorDifferentActions": true,
+        "errorContrastRatio": null
+      },
+      "expectedLabels": [
+        "same_color_different_actions"
+      ]
+    },
+    {
+      "sampleId": "test_error_visibility_001",
+      "description": "Error text blends with the interface and has weak contrast.",
+      "metadataFeatures": {
+        "isModalLike": false,
+        "hasExitControl": true,
+        "hasDestructiveAction": false,
+        "hasUndoOption": false,
+        "hasConfirmationDialog": false,
+        "controlDensity": 0.34,
+        "spacingDeviation": 0.1,
+        "alignmentDeviation": 0.1,
+        "cornerRadiusDeviation": 0.1,
+        "colorPatternDeviation": 0.71,
+        "sameColorDifferentActions": false,
+        "errorContrastRatio": 2.2
+      },
+      "expectedLabels": [
+        "color_inconsistency",
+        "weak_error_visibility",
+        "low_contrast_error_message",
+        "poor_error_state_styling"
+      ]
+    },
+    {
+      "sampleId": "test_destructive_001",
+      "description": "Delete action appears without undo or confirmation.",
+      "metadataFeatures": {
+        "isModalLike": false,
+        "hasExitControl": true,
+        "hasDestructiveAction": true,
+        "hasUndoOption": false,
+        "hasConfirmationDialog": false,
+        "controlDensity": 0.32,
+        "spacingDeviation": 0.1,
+        "alignmentDeviation": 0.1,
+        "cornerRadiusDeviation": 0.1,
+        "colorPatternDeviation": 0.1,
+        "sameColorDifferentActions": false,
+        "errorContrastRatio": null
+      },
+      "expectedLabels": [
+        "destructive_without_undo",
+        "irreversible_without_confirmation"
+      ]
+    },
+    {
+      "sampleId": "test_correct_001",
+      "description": "Clean screen with consistent layout, color, and control behavior.",
+      "metadataFeatures": {
+        "isModalLike": false,
+        "hasExitControl": true,
+        "hasDestructiveAction": false,
+        "hasUndoOption": true,
+        "hasConfirmationDialog": true,
+        "controlDensity": 0.28,
+        "spacingDeviation": 0.12,
+        "alignmentDeviation": 0.11,
+        "cornerRadiusDeviation": 0.08,
+        "colorPatternDeviation": 0.09,
+        "sameColorDifferentActions": false,
+        "errorContrastRatio": 5.4
+      },
+      "expectedLabels": []
+    },
+{
+  "sampleId": "test_borderline_spacing_001",
+  "description": "Spacing differs slightly but should still be acceptable.",
+  "metadataFeatures": {
+    "isModalLike": false,
+    "hasExitControl": true,
+    "hasDestructiveAction": false,
+    "hasUndoOption": false,
+    "hasConfirmationDialog": false,
+    "controlDensity": 0.35,
+    "spacingDeviation": 0.58,
+    "alignmentDeviation": 0.15,
+    "cornerRadiusDeviation": 0.1,
+    "colorPatternDeviation": 0.1,
+    "sameColorDifferentActions": false,
+    "errorContrastRatio": null
+  },
+  "expectedLabels": []
+},
+{
+  "sampleId": "test_modal_with_exit_001",
+  "description": "Modal-like frame includes a clear close control.",
+  "metadataFeatures": {
+    "isModalLike": true,
+    "hasExitControl": true,
+    "hasDestructiveAction": false,
+    "hasUndoOption": false,
+    "hasConfirmationDialog": false,
+    "controlDensity": 0.46,
+    "spacingDeviation": 0.12,
+    "alignmentDeviation": 0.1,
+    "cornerRadiusDeviation": 0.1,
+    "colorPatternDeviation": 0.1,
+    "sameColorDifferentActions": false,
+    "errorContrastRatio": null
+  },
+  "expectedLabels": []
+},
+{
+  "sampleId": "test_destructive_with_safety_001",
+  "description": "Delete action includes both undo and confirmation.",
+  "metadataFeatures": {
+    "isModalLike": false,
+    "hasExitControl": true,
+    "hasDestructiveAction": true,
+    "hasUndoOption": true,
+    "hasConfirmationDialog": true,
+    "controlDensity": 0.4,
+    "spacingDeviation": 0.1,
+    "alignmentDeviation": 0.1,
+    "cornerRadiusDeviation": 0.1,
+    "colorPatternDeviation": 0.1,
+    "sameColorDifferentActions": false,
+    "errorContrastRatio": null
+  },
+  "expectedLabels": []
+},
+{
+  "sampleId": "test_borderline_color_001",
+  "description": "Color difference is visible but still within acceptable pattern.",
+  "metadataFeatures": {
+    "isModalLike": false,
+    "hasExitControl": true,
+    "hasDestructiveAction": false,
+    "hasUndoOption": false,
+    "hasConfirmationDialog": false,
+    "controlDensity": 0.33,
+    "spacingDeviation": 0.1,
+    "alignmentDeviation": 0.1,
+    "cornerRadiusDeviation": 0.1,
+    "colorPatternDeviation": 0.6,
+    "sameColorDifferentActions": false,
+    "errorContrastRatio": null
+  },
+  "expectedLabels": []
+},
+{
+  "sampleId": "test_moderate_density_001",
+  "description": "Screen is moderately dense but not overloaded.",
+  "metadataFeatures": {
+    "isModalLike": false,
+    "hasExitControl": true,
+    "hasDestructiveAction": false,
+    "hasUndoOption": false,
+    "hasConfirmationDialog": false,
+    "controlDensity": 0.68,
+    "spacingDeviation": 0.2,
+    "alignmentDeviation": 0.2,
+    "cornerRadiusDeviation": 0.1,
+    "colorPatternDeviation": 0.1,
+    "sameColorDifferentActions": false,
+    "errorContrastRatio": null
+  },
+  "expectedLabels": []
+}
+
+
+
+  ]
+}

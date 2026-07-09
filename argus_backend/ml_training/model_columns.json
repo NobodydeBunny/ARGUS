@@ -1,0 +1,14 @@
+[
+  "isModalLike",
+  "hasExitControl",
+  "hasDestructiveAction",
+  "hasUndoOption",
+  "hasConfirmationDialog",
+  "controlDensity",
+  "spacingDeviation",
+  "alignmentDeviation",
+  "cornerRadiusDeviation",
+  "colorPatternDeviation",
+  "sameColorDifferentActions",
+  "errorContrastRatio"
+]

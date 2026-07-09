@@ -1,0 +1,107 @@
+{
+  "samples": [
+    {
+      "sampleId": "layout_modal_001",
+      "description": "Dialog-like frame with delete action but no cancel or close control.",
+      "metadataFeatures": {
+        "isModalLike": true,
+        "hasExitControl": false,
+        "hasDestructiveAction": true,
+        "hasUndoOption": false,
+        "hasConfirmationDialog": false,
+        "controlDensity": 0.52,
+        "spacingDeviation": 0.1,
+        "alignmentDeviation": 0.2,
+        "cornerRadiusDeviation": 0.1,
+        "colorPatternDeviation": 0.1,
+        "errorContrastRatio": null
+      },
+      "expectedLabels": [
+        "modal_without_exit",
+        "missing_exit_control",
+        "destructive_without_undo",
+        "irreversible_without_confirmation"
+      ]
+    },
+    {
+      "sampleId": "layout_spacing_001",
+      "description": "Repeated button group with one button using different spacing from the rest.",
+      "metadataFeatures": {
+        "isModalLike": false,
+        "hasExitControl": true,
+        "hasDestructiveAction": false,
+        "hasUndoOption": false,
+        "hasConfirmationDialog": false,
+        "controlDensity": 0.42,
+        "spacingDeviation": 0.86,
+        "alignmentDeviation": 0.18,
+        "cornerRadiusDeviation": 0.12,
+        "colorPatternDeviation": 0.1,
+        "errorContrastRatio": null
+      },
+      "expectedLabels": [
+        "spacing_inconsistency"
+      ]
+    },
+    {
+      "sampleId": "layout_shape_001",
+      "description": "Similar action buttons use different corner radius and proportions.",
+      "metadataFeatures": {
+        "isModalLike": false,
+        "hasExitControl": true,
+        "hasDestructiveAction": false,
+        "hasUndoOption": false,
+        "hasConfirmationDialog": false,
+        "controlDensity": 0.36,
+        "spacingDeviation": 0.2,
+        "alignmentDeviation": 0.15,
+        "cornerRadiusDeviation": 0.82,
+        "colorPatternDeviation": 0.1,
+        "errorContrastRatio": null
+      },
+      "expectedLabels": [
+        "button_shape_inconsistency"
+      ]
+    },
+    {
+      "sampleId": "color_error_001",
+      "description": "Error message uses weak color and blends with normal text.",
+      "metadataFeatures": {
+        "isModalLike": false,
+        "hasExitControl": true,
+        "hasDestructiveAction": false,
+        "hasUndoOption": false,
+        "hasConfirmationDialog": false,
+        "controlDensity": 0.34,
+        "spacingDeviation": 0.1,
+        "alignmentDeviation": 0.1,
+        "cornerRadiusDeviation": 0.1,
+        "colorPatternDeviation": 0.68,
+        "errorContrastRatio": 2.4
+      },
+      "expectedLabels": [
+        "weak_error_visibility",
+        "low_contrast_error_message",
+        "poor_error_state_styling"
+      ]
+    },
+    {
+      "sampleId": "correct_screen_001",
+      "description": "Clean screen with consistent layout, colors, and error handling controls.",
+      "metadataFeatures": {
+        "isModalLike": false,
+        "hasExitControl": true,
+        "hasDestructiveAction": false,
+        "hasUndoOption": true,
+        "hasConfirmationDialog": true,
+        "controlDensity": 0.28,
+        "spacingDeviation": 0.12,
+        "alignmentDeviation": 0.11,
+        "cornerRadiusDeviation": 0.09,
+        "colorPatternDeviation": 0.08,
+        "errorContrastRatio": 5.2
+      },
+      "expectedLabels": []
+    }
+  ]
+}

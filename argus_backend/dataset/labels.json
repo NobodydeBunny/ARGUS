@@ -1,0 +1,82 @@
+{
+  "labels": [
+    {
+      "id": "modal_without_exit",
+      "name": "Modal or Dialog Without Exit Option",
+      "principle": "User Control and Freedom",
+      "category": "layout"
+    },
+    {
+      "id": "spacing_inconsistency",
+      "name": "Spacing Pattern Inconsistency",
+      "principle": "Consistency and Standards",
+      "category": "layout"
+    },
+    {
+      "id": "button_shape_inconsistency",
+      "name": "Button Shape Inconsistency",
+      "principle": "Consistency and Standards",
+      "category": "layout"
+    },
+    {
+      "id": "alignment_inconsistency",
+      "name": "Inconsistent Alignment",
+      "principle": "Consistency and Standards",
+      "category": "layout"
+    },
+    {
+      "id": "overloaded_screen",
+      "name": "Overloaded Screen",
+      "principle": "Flexibility and Efficiency of Use",
+      "category": "layout"
+    },
+    {
+      "id": "color_inconsistency",
+      "name": "Inconsistent Color for Same Action",
+      "principle": "Consistency and Standards",
+      "category": "color"
+    },
+    {
+      "id": "same_color_different_actions",
+      "name": "Same Color Used for Different Actions",
+      "principle": "Consistency and Standards",
+      "category": "color"
+    },
+    {
+      "id": "weak_error_visibility",
+      "name": "Weak Error Message Visibility",
+      "principle": "Help Users Recognize, Diagnose and Recover from Errors",
+      "category": "color"
+    },
+    {
+      "id": "low_contrast_error_message",
+      "name": "Low Contrast Error Message",
+      "principle": "Help Users Recognize, Diagnose and Recover from Errors",
+      "category": "color"
+    },
+    {
+      "id": "poor_error_state_styling",
+      "name": "Poor Error State Styling",
+      "principle": "Help Users Recognize, Diagnose and Recover from Errors",
+      "category": "color"
+    },
+    {
+      "id": "missing_exit_control",
+      "name": "Missing Back, Cancel, or Close Control",
+      "principle": "User Control and Freedom",
+      "category": "error_handling"
+    },
+    {
+      "id": "destructive_without_undo",
+      "name": "Destructive Action Without Undo",
+      "principle": "Help Users Recognize, Diagnose and Recover from Errors",
+      "category": "error_handling"
+    },
+    {
+      "id": "irreversible_without_confirmation",
+      "name": "Irreversible Action Without Confirmation",
+      "principle": "Help Users Recognize, Diagnose and Recover from Errors",
+      "category": "error_handling"
+    }
+  ]
+}

@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Argus UI Analyzer</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      background: #eef5fc;
+      color: #1d2939;
+    }
+
+    .app {
+      width: 100%;
+      min-height: 100vh;
+      background: #f8fbff;
+      overflow-y: auto;
+    }
+
+    .page {
+      display: none;
+      padding: 16px;
+      min-height: 100vh;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: #1976ff;
+      color: #ffffff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 20px;
+      box-shadow: 0 8px 18px rgba(25, 118, 255, 0.25);
+    }
+
+    .header h2 {
+      font-size: 22px;
+      color: #121a2b;
+    }
+
+    .header p,
+    .status-small {
+      color: #667085;
+      font-size: 12px;
+      margin-top: 3px;
+    }
+
+    .status-active {
+      color: #1bb65c;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .icon-btn,
+    .close-btn {
+      width: 34px;
+      height: 34px;
+      border: none;
+      border-radius: 50%;
+      background: #e9eef5;
+      color: #667085;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .hero {
+      margin-top: 30px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .illustration {
+      width: 210px;
+      height: 165px;
+      background: #ffffff;
+      border-radius: 18px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 64px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    }
+
+    .welcome-title {
+      margin-top: 32px;
+      text-align: center;
+      font-size: 28px;
+      line-height: 1.3;
+      color: #1d2433;
+    }
+
+    .footer {
+      margin-top: 22px;
+      text-align: center;
+      color: #7b8794;
+      font-size: 12px;
+      padding-bottom: 18px;
+    }
+
+    button {
+      font-family: inherit;
+    }
+
+    .primary-btn,
+    .start-btn {
+      width: 100%;
+      min-height: 46px;
+      border: none;
+      border-radius: 14px;
+      background: #1976ff;
+      color: white;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(25,118,255,.22);
+      padding: 12px;
+    }
+
+    .start-btn {
+      margin-top: 34px;
+      font-size: 17px;
+      min-height: 52px;
+    }
+
+    .primary-btn:disabled,
+    .secondary-btn:disabled {
+      background: #a8b0bd;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .green-btn {
+      width: 100%;
+      min-height: 46px;
+      border: none;
+      border-radius: 14px;
+      background: #0f9f72;
+      color: white;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 12px;
+      margin-top: 12px;
+    }
+
+    .secondary-btn {
+      width: 100%;
+      min-height: 46px;
+      border: none;
+      border-radius: 14px;
+      background: #ffffff;
+      color: #263238;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.08);
+    }
+
+    .danger-btn {
+      width: 100%;
+      min-height: 44px;
+      border: none;
+      border-radius: 12px;
+      background: #fef2f2;
+      color: #b91c1c;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 10px;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .status-card,
+    .summary-card,
+    .issue-card,
+    .preview-card,
+    .json-card {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 5px 18px rgba(0,0,0,.08);
+    }
+
+    .status-card {
+      margin-top: 18px;
+    }
+
+    .card-header,
+    .title-row,
+    .preview-top,
+    .info-grid,
+    .scan-time {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-header h3 {
+      font-size: 18px;
+      color: #24324a;
+    }
+
+    .running {
+      background: #eafaf0;
+      color: #18a957;
+      font-size: 11px;
+      font-weight: bold;
+      padding: 5px 10px;
+      border-radius: 8px;
+    }
+
+    .paused {
+      background: #eef2f7;
+      color: #667085;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 22px;
+    }
+
+    .label {
+      color: #7b8aa2;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .blue {
+      color: #1a73ff;
+      font-size: 34px;
+    }
+
+    .red {
+      color: #ff3d3d;
+      font-size: 34px;
+    }
+
+    .scan-time {
+      margin-top: 20px;
+      color: #8b98ad;
+      font-size: 13px;
+    }
+
+    .section-title {
+      margin-top: 24px;
+      margin-bottom: 12px;
+      color: #6c7a91;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .issue-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #eef2f7;
+    }
+
+    .issue-row:last-child {
+      border-bottom: none;
+    }
+
+    .issue-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #344054;
+      font-size: 14px;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+    }
+
+    .critical {
+      background: #ff4d4f;
+    }
+
+    .moderate {
+      background: #ff8c1a;
+    }
+
+    .minor {
+      background: #f5c400;
+    }
+
+    .count {
+      font-weight: bold;
+    }
+
+    .critical-text {
+      color: #ff3b30;
+    }
+
+    .moderate-text {
+      color: #ff8c1a;
+    }
+
+    .minor-text {
+      color: #c99a00;
+    }
+
+    .issue-card {
+      margin-bottom: 14px;
+      border-left: 5px solid #d8e2ef;
+    }
+
+    .critical-card {
+      border-left-color: #ff3b30;
+    }
+
+    .moderate-card {
+      border-left-color: #ff9500;
+    }
+
+    .minor-card {
+      border-left-color: #f5c400;
+    }
+
+    .issue-card h2,
+    .issue-card h5 {
+      font-size: 16px;
+      color: #263238;
+      line-height: 1.35;
+    }
+
+    .issue-card p,
+    .description {
+      margin-top: 10px;
+      color: #667085;
+      font-size: 13px;
+      line-height: 20px;
+    }
+
+    .badge {
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: bold;
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+
+    .badge.high {
+      background: #ffe5e5;
+      color: #ff3b30;
+    }
+
+    .badge.medium {
+      background: #fff1dc;
+      color: #ff9500;
+    }
+
+    .badge.low {
+      background: #fff8d6;
+      color: #c99a00;
+    }
+
+    .suggestion {
+      margin-top: 14px;
+      padding: 13px;
+      background: #edf5ff;
+      border: 1px solid #cfe1ff;
+      border-radius: 14px;
+    }
+
+    .suggestion h4 {
+      color: #1976ff;
+      font-size: 12px;
+      margin-bottom: 7px;
+    }
+
+    .suggestion p {
+      margin-top: 0;
+      color: #344054;
+      font-size: 13px;
+      line-height: 19px;
+    }
+
+    .frame {
+      margin-top: 11px;
+      color: #7a8799;
+      font-size: 12px;
+    }
+
+    .bottom-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .json-card {
+      margin-top: 16px;
+    }
+
+    .json-card h4 {
+      font-size: 14px;
+      color: #24324a;
+      margin-bottom: 10px;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-x: auto;
+      background: #f3f4f6;
+      color: #111827;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 11px;
+      line-height: 1.45;
+      max-height: 230px;
+      overflow-y: auto;
+    }
+
+    .summary-box {
+      background: white;
+      border-radius: 18px;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    }
+
+    .report-summary-card {
+      min-height: 70px;
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .report-summary-card span {
+      font-size: 10px;
+      font-weight: bold;
+    }
+
+    .report-summary-card h2 {
+      margin-top: 8px;
+      font-size: 22px;
+      color: #172033;
+    }
+
+    .blue-card {
+      background: #f2f7ff;
+      border: 1px solid #cfe1ff;
+      color: #1976ff;
+    }
+
+    .red-card {
+      background: #fff5f5;
+      border: 1px solid #ffd3d3;
+      color: #ff3b30;
+    }
+
+    .orange-card {
+      background: #fff8ef;
+      border: 1px solid #ffd9ad;
+      color: #ff7a00;
+    }
+
+    .yellow-card {
+      background: #fffdf1;
+      border: 1px solid #efe6a8;
+      color: #d69a00;
+    }
+
+    .preview-card {
+      margin-top: 12px;
+      background: #edf6ff;
+      border: 1px solid #cfe1ff;
+      box-shadow: none;
+    }
+
+    .preview-top h2 {
+      font-size: 17px;
+      color: #182235;
+      line-height: 23px;
+    }
+
+    .underline {
+      width: 42px;
+      height: 4px;
+      background: #1976ff;
+      border-radius: 10px;
+      margin-top: 8px;
+    }
+
+    .doc-icon {
+      width: 42px;
+      height: 42px;
+      background: #dbeeff;
+      color: #1976ff;
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 20px;
+    }
+
+    .info-row,
+    .info-grid {
+      margin-top: 18px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .preview-card h5 {
+      color: #1976ff;
+      font-size: 10px;
+      margin-bottom: 7px;
+    }
+
+    .preview-card p {
+      color: #344054;
+      font-size: 13px;
+      line-height: 19px;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid #cfe1ff;
+      margin: 18px 0;
+    }
+
+    .status-line {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 12px;
+      background: #eef5fc;
+      color: #344054;
+      font-size: 13px;
+      line-height: 18px;
+    }
+
+    .error {
+      color: #b91c1c;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+    }
+
+    .hide {
+      display: none;
+    }
+
+    .nav-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .nav-row button {
+      min-height: 38px;
+      border: none;
+      border-radius: 10px;
+      background: #ffffff;
+      color: #1976ff;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,0,0,.08);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+
+    <!-- Welcome Page -->
+    <section id="welcomePage" class="page active">
+      <div class="header">
+        <div class="left">
+          <div class="logo">👁</div>
+          <h2>Argus</h2>
+        </div>
+        <button class="close-btn" id="welcomeCloseBtn">✕</button>
+      </div>
+
+      <div class="hero">
+        <div class="illustration">🔍</div>
+      </div>
+
+      <h1 class="welcome-title">
+        Welcome to Argus<br>
+        AI Powered UI Design Analysis
+      </h1>
+
+      <button id="startBtn" class="start-btn">
+        Start Analysis 🚀
+      </button>
+
+      <p class="footer">
+        Designed to help you build better user interfaces.
+      </p>
+    </section>
+
+    <!-- Dashboard Page -->
+    <section id="dashboardPage" class="page">
+      <div class="header">
+        <div class="left">
+          <div class="logo">👁</div>
+          <div>
+            <h2>Argus</h2>
+            <span id="monitorStatusText" class="status-active">● READY</span>
+          </div>
+        </div>
+        <button class="icon-btn" id="settingsBtn">⚙</button>
+      </div>
+
+      <button id="analyzeBtn" class="primary-btn">
+        Analyze Selected Design
+      </button>
+
+      <button id="scanToggleBtn" class="green-btn">
+        Enable Near Real-Time Scanning
+      </button>
+
+      <div class="actions">
+        <button id="pauseBtn" class="secondary-btn">⏸ Pause</button>
+        <button id="resultsBtn" class="secondary-btn">📄 Results</button>
+      </div>
+
+      <div class="status-card">
+        <div class="card-header">
+          <h3>Analysis Status</h3>
+          <span id="runningBadge" class="running paused">IDLE</span>
+        </div>
+
+        <div class="status-grid">
+          <div>
+            <p class="label">Nodes Scanned</p>
+            <h1 id="framesScannedValue" class="blue">0</h1>
+          </div>
+
+          <div>
+            <p class="label">Issues Detected</p>
+            <h1 id="issuesDetectedValue" class="red">0</h1>
+          </div>
+        </div>
+
+        <div class="scan-time">
+          <span>Last Scan Time</span>
+          <strong id="lastScanTime">Not scanned</strong>
+        </div>
+      </div>
+
+      <h4 class="section-title">Issues Summary</h4>
+
+      <div class="summary-card">
+        <div class="issue-row">
+          <div class="issue-left">
+            <span class="dot critical"></span>
+            <span>Critical</span>
+          </div>
+          <span id="criticalCount" class="count critical-text">0</span>
+        </div>
+
+        <div class="issue-row">
+          <div class="issue-left">
+            <span class="dot moderate"></span>
+            <span>Moderate</span>
+          </div>
+          <span id="moderateCount" class="count moderate-text">0</span>
+        </div>
+
+        <div class="issue-row">
+          <div class="issue-left">
+            <span class="dot minor"></span>
+            <span>Minor</span>
+          </div>
+          <span id="minorCount" class="count minor-text">0</span>
+        </div>
+      </div>
+
+      <h4 class="section-title">Detected Issues</h4>
+
+      <div id="dashboardIssues">
+        <div class="issue-card">
+          <h5>No issues detected yet</h5>
+          <p>Select a Figma frame or layers, then run analysis.</p>
+        </div>
+      </div>
+
+      <div class="json-card">
+        <h4>Extracted JSON Data</h4>
+        <pre id="jsonOutput">No design data extracted yet.</pre>
+      </div>
+
+      <div id="statusOutput" class="status-line">
+        Ready.
+      </div>
+
+      <div class="nav-row">
+        <button id="goWelcomeBtn">Home</button>
+        <button id="goReportBtn">Report</button>
+        <button id="closePluginBtn">Close</button>
+      </div>
+    </section>
+
+    <!-- Results Page -->
+    <section id="resultsPage" class="page">
+      <div class="header">
+        <div class="left">
+          <div class="logo">👁</div>
+          <div>
+            <h2>Argus</h2>
+            <p>Design Analysis Results</p>
+          </div>
+        </div>
+        <button class="icon-btn" id="backToDashboardFromResults">←</button>
+      </div>
+
+      <div id="resultsList">
+        <div class="issue-card">
+          <h2>No results yet</h2>
+          <p class="description">Run an analysis first to view detected UI issues and AI suggestions.</p>
+        </div>
+      </div>
+
+      <div class="bottom-buttons">
+        <button id="refreshResultsBtn" class="secondary-btn">Refresh</button>
+        <button id="openReportFromResultsBtn" class="primary-btn">Report</button>
+      </div>
+    </section>
+
+    <!-- Report Page -->
+    <section id="reportPage" class="page">
+      <div class="header">
+        <div class="left">
+          <div class="logo">👁</div>
+          <div>
+            <h2>Argus</h2>
+            <p>Generate Analysis Report</p>
+          </div>
+        </div>
+        <button class="icon-btn" id="backToDashboardFromReport">←</button>
+      </div>
+
+      <h4 class="section-title">Report Summary</h4>
+
+      <div class="summary-box">
+        <div class="report-summary-card blue-card">
+          <span>TOTAL ISSUES</span>
+          <h2 id="reportTotalIssues">0</h2>
+        </div>
+
+        <div class="report-summary-card red-card">
+          <span>CRITICAL</span>
+          <h2 id="reportCritical">0</h2>
+        </div>
+
+        <div class="report-summary-card orange-card">
+          <span>MODERATE</span>
+          <h2 id="reportModerate">0</h2>
+        </div>
+
+        <div class="report-summary-card yellow-card">
+          <span>MINOR</span>
+          <h2 id="reportMinor">0</h2>
+        </div>
+      </div>
+
+      <h4 class="section-title">Report Preview</h4>
+
+      <div class="preview-card">
+        <div class="preview-top">
+          <div>
+            <h2 id="reportTitle">Argus UI Design Analysis Report</h2>
+            <div class="underline"></div>
+          </div>
+
+          <div class="doc-icon">📄</div>
+        </div>
+
+        <div class="info-row">
+          <h5>PROJECT NAME</h5>
+          <p id="reportProjectName">No report generated yet</p>
+        </div>
+
+        <div class="info-grid">
+          <div>
+            <h5>ANALYSIS DATE</h5>
+            <p id="reportDate">Not generated</p>
+          </div>
+
+          <div>
+            <h5>GENERATED BY</h5>
+            <p>Argus AI Engine</p>
+          </div>
+        </div>
+
+        <hr>
+
+        <div class="issues">
+          <h5>TOP ISSUES</h5>
+          <div id="reportTopIssues">
+            <p>No report generated yet.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-buttons">
+        <button id="generateReportBtn" class="primary-btn" disabled>Generate</button>
+        <button id="exportReportBtn" class="secondary-btn" disabled>Export</button>
+      </div>
+
+      <button id="cancelExportBtn" class="danger-btn hide">
+        Cancel Export
+      </button>
+
+      <div id="reportStatusOutput" class="status-line">
+        Analyze a design before generating a report.
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const pages = {
+      welcome: document.getElementById("welcomePage"),
+      dashboard: document.getElementById("dashboardPage"),
+      results: document.getElementById("resultsPage"),
+      report: document.getElementById("reportPage")
+    };
+
+    const startBtn = document.getElementById("startBtn");
+    const welcomeCloseBtn = document.getElementById("welcomeCloseBtn");
+    const analyzeBtn = document.getElementById("analyzeBtn");
+    const scanToggleBtn = document.getElementById("scanToggleBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const resultsBtn = document.getElementById("resultsBtn");
+    const goWelcomeBtn = document.getElementById("goWelcomeBtn");
+    const goReportBtn = document.getElementById("goReportBtn");
+    const closePluginBtn = document.getElementById("closePluginBtn");
+    const backToDashboardFromResults = document.getElementById("backToDashboardFromResults");
+    const backToDashboardFromReport = document.getElementById("backToDashboardFromReport");
+    const refreshResultsBtn = document.getElementById("refreshResultsBtn");
+    const openReportFromResultsBtn = document.getElementById("openReportFromResultsBtn");
+    const generateReportBtn = document.getElementById("generateReportBtn");
+    const exportReportBtn = document.getElementById("exportReportBtn");
+    const cancelExportBtn = document.getElementById("cancelExportBtn");
+
+    const monitorStatusText = document.getElementById("monitorStatusText");
+    const runningBadge = document.getElementById("runningBadge");
+    const framesScannedValue = document.getElementById("framesScannedValue");
+    const issuesDetectedValue = document.getElementById("issuesDetectedValue");
+    const lastScanTime = document.getElementById("lastScanTime");
+    const criticalCount = document.getElementById("criticalCount");
+    const moderateCount = document.getElementById("moderateCount");
+    const minorCount = document.getElementById("minorCount");
+    const dashboardIssues = document.getElementById("dashboardIssues");
+    const jsonOutput = document.getElementById("jsonOutput");
+    const statusOutput = document.getElementById("statusOutput");
+    const resultsList = document.getElementById("resultsList");
+
+    const reportTotalIssues = document.getElementById("reportTotalIssues");
+    const reportCritical = document.getElementById("reportCritical");
+    const reportModerate = document.getElementById("reportModerate");
+    const reportMinor = document.getElementById("reportMinor");
+    const reportTitle = document.getElementById("reportTitle");
+    const reportProjectName = document.getElementById("reportProjectName");
+    const reportDate = document.getElementById("reportDate");
+    const reportTopIssues = document.getElementById("reportTopIssues");
+    const reportStatusOutput = document.getElementById("reportStatusOutput");
+
+    let currentAnalysisId = null;
+    let currentReportId = null;
+    let isScanning = false;
+    let latestAnalysis = null;
+    let latestReport = null;
+    let latestDesignData = null;
+
+    function showPage(pageName) {
+      Object.values(pages).forEach(page => page.classList.remove("active"));
+      pages[pageName].classList.add("active");
+    }
+
+    function sendPluginMessage(message) {
+      parent.postMessage(
+        {
+          pluginMessage: message
+        },
+        "*"
+      );
+    }
+
+    function setStatus(message, isError = false) {
+      statusOutput.textContent = message;
+      statusOutput.classList.toggle("error", isError);
+      reportStatusOutput.textContent = message;
+      reportStatusOutput.classList.toggle("error", isError);
+    }
+
+    function requestPluginClose() {
+      const confirmed = confirm("Are you sure you want to stop Argus UI Analyzer?");
+
+      if (!confirmed) {
+        setStatus("Plugin termination cancelled.");
+        return;
+      }
+
+      sendPluginMessage({
+        type: "request-close-plugin"
+      });
+    }
+
+    function updateScanningUi() {
+      scanToggleBtn.textContent = isScanning
+        ? "Disable Near Real-Time Scanning"
+        : "Enable Near Real-Time Scanning";
+
+      runningBadge.textContent = isScanning ? "RUNNING" : "IDLE";
+      runningBadge.classList.toggle("paused", !isScanning);
+
+      monitorStatusText.textContent = isScanning
+        ? "● MONITORING ACTIVE"
+        : "● READY";
+    }
+
+    function getSeverityClass(severity) {
+      if (severity === "high") return "critical-card";
+      if (severity === "medium") return "moderate-card";
+      return "minor-card";
+    }
+
+    function getSeverityLabel(severity) {
+      if (severity === "high") return "critical";
+      if (severity === "medium") return "moderate";
+      return "minor";
+    }
+
+    function getIssueCounts(issues) {
+      return {
+        high: issues.filter(issue => issue.severity === "high").length,
+        medium: issues.filter(issue => issue.severity === "medium").length,
+        low: issues.filter(issue => issue.severity === "low").length
+      };
+    }
+
+    function safeText(value, fallback = "N/A") {
+      return value == null || value === "" ? fallback : String(value);
+    }
+
+    function renderDashboardIssues(issues) {
+      if (!issues || issues.length === 0) {
+        dashboardIssues.innerHTML = `
+          <div class="issue-card">
+            <h5>No UI issues detected</h5>
+            <p>The selected design does not show detectable issues based on the current analysis.</p>
+          </div>
+        `;
+        return;
+      }
+
+      dashboardIssues.innerHTML = issues.slice(0, 5).map(issue => `
+        <div class="issue-card ${getSeverityClass(issue.severity)}">
+          <h5>${safeText(issue.type)}</h5>
+          <p>${safeText(issue.message, "Pattern issue detected in the selected design.")}</p>
+          <p class="frame">Layer: ${safeText(issue.nodeName, "Unknown")}</p>
+        </div>
+      `).join("");
+    }
+
+    function renderResults(issues) {
+      if (!issues || issues.length === 0) {
+        resultsList.innerHTML = `
+          <div class="issue-card">
+            <h2>No UI issues detected</h2>
+            <p class="description">No design problems were detected in the latest analysis.</p>
+          </div>
+        `;
+        return;
+      }
+
+      resultsList.innerHTML = issues.map(issue => `
+        <div class="issue-card ${getSeverityClass(issue.severity)}">
+          <div class="title-row">
+            <h2>${safeText(issue.type)}</h2>
+            <span class="badge ${issue.severity || "low"}">${getSeverityLabel(issue.severity)}</span>
+          </div>
+
+          <p class="description">
+            ${safeText(issue.message, "The AI model detected a possible UI pattern issue.")}
+          </p>
+
+          <p class="frame">
+            Layer: ${safeText(issue.nodeName, "Unknown")} · Type: ${safeText(issue.nodeType, "Unknown")}
+          </p>
+
+          <div class="suggestion">
+            <h4>✨ AI SUGGESTION</h4>
+            <p>${safeText(issue.recommendation, "Review this element because it differs from the expected UI pattern.")}</p>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function updateReportSummaryFromAnalysis(analysis) {
+      const issues = analysis && analysis.issues ? analysis.issues : [];
+      const counts = getIssueCounts(issues);
+
+      reportTotalIssues.textContent = issues.length;
+      reportCritical.textContent = counts.high;
+      reportModerate.textContent = counts.medium;
+      reportMinor.textContent = counts.low;
+
+      if (analysis) {
+        reportProjectName.textContent = analysis.designName || "Current Figma Selection";
+        reportDate.textContent = new Date().toLocaleString();
+        reportTitle.textContent = "Argus UI Design Analysis Report";
+      }
+
+      if (issues.length === 0) {
+        reportTopIssues.innerHTML = "<p>No top issues available.</p>";
+      } else {
+        reportTopIssues.innerHTML = issues.slice(0, 3).map(issue => `
+          <p><span>•</span> ${safeText(issue.type)} in ${safeText(issue.nodeName, "Unknown layer")}</p>
+        `).join("");
+      }
+    }
+
+    function renderAnalysis(analysis) {
+      latestAnalysis = analysis;
+      const issues = analysis.issues || [];
+      const counts = getIssueCounts(issues);
+
+      currentAnalysisId = analysis._id;
+      currentReportId = null;
+
+      framesScannedValue.textContent = analysis.nodeCount || (latestDesignData && latestDesignData.nodeCount) || 0;
+      issuesDetectedValue.textContent = analysis.totalIssues || issues.length;
+      criticalCount.textContent = counts.high;
+      moderateCount.textContent = counts.medium;
+      minorCount.textContent = counts.low;
+      lastScanTime.textContent = new Date().toLocaleTimeString();
+
+      generateReportBtn.disabled = false;
+      exportReportBtn.disabled = true;
+      cancelExportBtn.classList.add("hide");
+
+      renderDashboardIssues(issues);
+      renderResults(issues);
+      updateReportSummaryFromAnalysis(analysis);
+    }
+
+    startBtn.onclick = () => {
+      showPage("dashboard");
+      setStatus("Select one or more Figma layers, then run analysis.");
+    };
+
+    welcomeCloseBtn.onclick = requestPluginClose;
+    closePluginBtn.onclick = requestPluginClose;
+
+    analyzeBtn.onclick = () => {
+      setStatus("Analyzing selected Figma layers...");
+      showPage("dashboard");
+
+      sendPluginMessage({
+        type: "analyze-selection"
+      });
+    };
+
+    scanToggleBtn.onclick = () => {
+      isScanning = !isScanning;
+      updateScanningUi();
+
+      setStatus(isScanning
+        ? "Near real-time scanning is enabled. Argus will monitor design changes."
+        : "Near real-time scanning is disabled.");
+
+      sendPluginMessage({
+        type: isScanning ? "enable-realtime-scan" : "disable-realtime-scan"
+      });
+    };
+
+    pauseBtn.onclick = () => {
+      if (!isScanning) {
+        setStatus("Near real-time scanning is already paused.");
+        return;
+      }
+
+      isScanning = false;
+      updateScanningUi();
+
+      sendPluginMessage({
+        type: "disable-realtime-scan"
+      });
+
+      setStatus("Near real-time scanning paused.");
+    };
+
+    resultsBtn.onclick = () => {
+      showPage("results");
+    };
+
+    goWelcomeBtn.onclick = () => {
+      showPage("welcome");
+    };
+
+    goReportBtn.onclick = () => {
+      showPage("report");
+    };
+
+    backToDashboardFromResults.onclick = () => {
+      showPage("dashboard");
+    };
+
+    backToDashboardFromReport.onclick = () => {
+      showPage("dashboard");
+    };
+
+    refreshResultsBtn.onclick = () => {
+      renderResults(latestAnalysis ? latestAnalysis.issues : []);
+      setStatus("Results refreshed.");
+    };
+
+    openReportFromResultsBtn.onclick = () => {
+      showPage("report");
+    };
+
+    generateReportBtn.onclick = () => {
+      if (!currentAnalysisId) {
+        setStatus("Please analyze a design first.", true);
+        return;
+      }
+
+      setStatus("Generating report...");
+
+      sendPluginMessage({
+        type: "generate-report",
+        analysisId: currentAnalysisId
+      });
+    };
+
+    exportReportBtn.onclick = () => {
+      if (!currentReportId) {
+        setStatus("Please generate a report first.", true);
+        return;
+      }
+
+      const confirmed = confirm("Do you want to export this report now?");
+
+      if (!confirmed) {
+        sendPluginMessage({
+          type: "cancel-export",
+          reportId: currentReportId
+        });
+
+        setStatus("Report export cancelled.");
+        return;
+      }
+
+      sendPluginMessage({
+        type: "export-report",
+        reportId: currentReportId
+      });
+
+      cancelExportBtn.classList.remove("hide");
+    };
+
+    cancelExportBtn.onclick = () => {
+      if (!currentReportId) {
+        setStatus("No report is available to cancel.", true);
+        return;
+      }
+
+      sendPluginMessage({
+        type: "cancel-export",
+        reportId: currentReportId
+      });
+
+      cancelExportBtn.classList.add("hide");
+      setStatus("Report export cancelled.");
+    };
+
+    document.getElementById("settingsBtn").onclick = () => {
+      setStatus("Settings screen is reserved for future improvements.");
+    };
+
+    onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+
+      if (!msg) {
+        return;
+      }
+
+      if (msg.type === "design-data") {
+        latestDesignData = msg.data;
+        jsonOutput.textContent = JSON.stringify(msg.data, null, 2);
+        framesScannedValue.textContent = msg.data.nodeCount || 0;
+      }
+
+      if (msg.type === "analysis-result") {
+        renderAnalysis(msg.data);
+        setStatus("Analysis completed.");
+      }
+
+      if (msg.type === "report-result") {
+        latestReport = msg.data;
+        currentReportId = msg.data._id;
+        exportReportBtn.disabled = false;
+        cancelExportBtn.classList.add("hide");
+
+        reportTitle.textContent = msg.data.title || "Argus UI Design Analysis Report";
+        reportProjectName.textContent = latestAnalysis ? latestAnalysis.designName : "Current Figma Selection";
+        reportDate.textContent = new Date(msg.data.generatedAt || Date.now()).toLocaleString();
+
+        reportStatusOutput.textContent = "Report generated. You can export it now.";
+        reportStatusOutput.classList.remove("error");
+
+        showPage("report");
+      }
+
+      if (msg.type === "scan-status") {
+        setStatus(msg.message);
+      }
+
+      if (msg.type === "system-status") {
+        setStatus(msg.message);
+
+        if (msg.message && msg.message.toLowerCase().includes("export")) {
+          cancelExportBtn.classList.add("hide");
+        }
+      }
+
+      if (msg.type === "processing-limit") {
+        setStatus(msg.message, true);
+      }
+
+      if (msg.type === "close-blocked") {
+        setStatus(msg.message, true);
+      }
+
+      if (msg.type === "error") {
+        setStatus(msg.message, true);
+      }
+    };
+
+    updateScanningUi();
+  </script>
+</body>
+</html>

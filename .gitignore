@@ -1,0 +1,7 @@
+node_modules/
+.env
+*.log
+argus-report.txt
+final-session-report.txt
+.DS_Store
+Thumbs.db
