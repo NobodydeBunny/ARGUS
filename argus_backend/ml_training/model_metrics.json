@@ -1,0 +1,278 @@
+{
+  "datasetRows": 40000,
+  "trainingRows": 32000,
+  "testRows": 8000,
+  "featureColumns": [
+    "nodeCount",
+    "screenWidth",
+    "screenHeight",
+    "screenArea",
+    "isModalLike",
+    "modalConfidence",
+    "hasExitControl",
+    "hasDestructiveAction",
+    "hasUndoOption",
+    "hasConfirmationDialog",
+    "interactiveElementCount",
+    "textElementCount",
+    "errorElementCount",
+    "buttonCount",
+    "inputCount",
+    "controlDensity",
+    "textDensity",
+    "averageSpacing",
+    "spacingDeviation",
+    "maxSpacingGap",
+    "alignmentDeviation",
+    "misalignedElementCount",
+    "cornerRadiusDeviation",
+    "buttonHeightDeviation",
+    "buttonWidthDeviation",
+    "buttonAspectRatioDeviation",
+    "colorCount",
+    "actionColorCount",
+    "sameActionColorDeviation",
+    "differentActionSameColorScore",
+    "colorPatternDeviation",
+    "errorContrastRatio",
+    "errorVisibilityScore",
+    "backgroundContrastAverage",
+    "destructiveActionCount",
+    "confirmationControlCount",
+    "layoutGroupSize",
+    "overlayPresent",
+    "module_layout",
+    "module_color",
+    "module_error",
+    "module_normal"
+  ],
+  "issueLabelAccuracy": 0.72125,
+  "severityAccuracy": 1.0,
+  "suggestionCategoryAccuracy": 0.718125,
+  "issueLabelReport": {
+    "alignment_inconsistency": {
+      "precision": 0.5909090909090909,
+      "recall": 0.5053995680345572,
+      "f1-score": 0.5448195576251456,
+      "support": 463.0
+    },
+    "button_shape_inconsistency": {
+      "precision": 0.477112676056338,
+      "recall": 0.5929978118161926,
+      "f1-score": 0.5287804878048781,
+      "support": 457.0
+    },
+    "color_inconsistency": {
+      "precision": 0.6928,
+      "recall": 0.684044233807267,
+      "f1-score": 0.6883942766295708,
+      "support": 633.0
+    },
+    "destructive_without_undo": {
+      "precision": 0.5777777777777777,
+      "recall": 0.5824,
+      "f1-score": 0.5800796812749004,
+      "support": 625.0
+    },
+    "irreversible_without_confirmation": {
+      "precision": 0.587183308494784,
+      "recall": 0.6293929712460063,
+      "f1-score": 0.607555898226677,
+      "support": 626.0
+    },
+    "missing_exit_control": {
+      "precision": 0.8469241773962805,
+      "recall": 0.7903871829105474,
+      "f1-score": 0.8176795580110497,
+      "support": 749.0
+    },
+    "no_issue": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 2000.0
+    },
+    "overloaded_screen": {
+      "precision": 0.9824945295404814,
+      "recall": 0.798932384341637,
+      "f1-score": 0.8812561334641805,
+      "support": 562.0
+    },
+    "same_color_different_actions": {
+      "precision": 0.573228346456693,
+      "recall": 0.48533333333333334,
+      "f1-score": 0.5256317689530686,
+      "support": 750.0
+    },
+    "spacing_inconsistency": {
+      "precision": 0.5526770293609672,
+      "recall": 0.6177606177606177,
+      "f1-score": 0.5834092980856882,
+      "support": 518.0
+    },
+    "weak_error_visibility": {
+      "precision": 0.47162162162162163,
+      "recall": 0.5656401944894651,
+      "f1-score": 0.5143699336772292,
+      "support": 617.0
+    },
+    "accuracy": 0.72125,
+    "macro avg": {
+      "precision": 0.6684298688740031,
+      "recall": 0.6592989361581476,
+      "f1-score": 0.6610887812502171,
+      "support": 8000.0
+    },
+    "weighted avg": {
+      "precision": 0.7315710375426385,
+      "recall": 0.72125,
+      "f1-score": 0.7242551920574608,
+      "support": 8000.0
+    }
+  },
+  "severityReport": {
+    "high": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 2000.0
+    },
+    "low": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 2000.0
+    },
+    "medium": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 4000.0
+    },
+    "accuracy": 1.0,
+    "macro avg": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 8000.0
+    },
+    "weighted avg": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 8000.0
+    }
+  },
+  "suggestionCategoryReport": {
+    "add_back_cancel_or_close": {
+      "precision": 0.8435277382645804,
+      "recall": 0.7917222963951935,
+      "f1-score": 0.8168044077134986,
+      "support": 749.0
+    },
+    "add_confirmation_step": {
+      "precision": 0.5735735735735735,
+      "recall": 0.610223642172524,
+      "f1-score": 0.5913312693498453,
+      "support": 626.0
+    },
+    "add_undo_or_recovery_option": {
+      "precision": 0.5705229793977813,
+      "recall": 0.576,
+      "f1-score": 0.5732484076433121,
+      "support": 625.0
+    },
+    "align_to_common_layout_pattern": {
+      "precision": 0.5826972010178118,
+      "recall": 0.4946004319654428,
+      "f1-score": 0.5350467289719626,
+      "support": 463.0
+    },
+    "differentiate_action_colors": {
+      "precision": 0.5829307568438004,
+      "recall": 0.4826666666666667,
+      "f1-score": 0.5280816921954777,
+      "support": 750.0
+    },
+    "improve_error_state_visibility": {
+      "precision": 0.46558704453441296,
+      "recall": 0.5591572123176661,
+      "f1-score": 0.508100147275405,
+      "support": 617.0
+    },
+    "no_action_needed": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 2000.0
+    },
+    "reduce_density_and_group_controls": {
+      "precision": 0.9760348583877996,
+      "recall": 0.797153024911032,
+      "f1-score": 0.8775710088148874,
+      "support": 562.0
+    },
+    "standardize_action_color": {
+      "precision": 0.677115987460815,
+      "recall": 0.6824644549763034,
+      "f1-score": 0.6797797010228167,
+      "support": 633.0
+    },
+    "standardize_component_shape": {
+      "precision": 0.48841354723707664,
+      "recall": 0.5995623632385121,
+      "f1-score": 0.5383104125736738,
+      "support": 457.0
+    },
+    "standardize_spacing": {
+      "precision": 0.545144804088586,
+      "recall": 0.6177606177606177,
+      "f1-score": 0.579185520361991,
+      "support": 518.0
+    },
+    "accuracy": 0.718125,
+    "macro avg": {
+      "precision": 0.664140771891476,
+      "recall": 0.6555737009458144,
+      "f1-score": 0.6570417541748064,
+      "support": 8000.0
+    },
+    "weighted avg": {
+      "precision": 0.7280532854255677,
+      "recall": 0.718125,
+      "f1-score": 0.7208809052615156,
+      "support": 8000.0
+    }
+  },
+  "issueLabels": [
+    "alignment_inconsistency",
+    "button_shape_inconsistency",
+    "color_inconsistency",
+    "destructive_without_undo",
+    "irreversible_without_confirmation",
+    "missing_exit_control",
+    "no_issue",
+    "overloaded_screen",
+    "same_color_different_actions",
+    "spacing_inconsistency",
+    "weak_error_visibility"
+  ],
+  "severityLabels": [
+    "high",
+    "low",
+    "medium"
+  ],
+  "suggestionCategories": [
+    "add_back_cancel_or_close",
+    "add_confirmation_step",
+    "add_undo_or_recovery_option",
+    "align_to_common_layout_pattern",
+    "differentiate_action_colors",
+    "improve_error_state_visibility",
+    "no_action_needed",
+    "reduce_density_and_group_controls",
+    "standardize_action_color",
+    "standardize_component_shape",
+    "standardize_spacing"
+  ]
+}

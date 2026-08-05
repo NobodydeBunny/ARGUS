@@ -1,185 +1,122 @@
-const EXIT_KEYWORDS = ["back", "cancel", "close", "x", "dismiss", "return"];
-const DESTRUCTIVE_KEYWORDS = ["delete", "remove", "reset", "discard", "clear", "erase"];
-const UNDO_KEYWORDS = ["undo", "restore", "recover", "revert"];
-const CONFIRMATION_KEYWORDS = ["confirm", "are you sure", "yes", "no", "cancel"];
-const MODAL_KEYWORDS = ["modal", "dialog", "popup", "confirmation", "overlay"];
+const {
+  getNodes,
+  getChildren,
+  isModalLike,
+  isExitNode,
+  isDestructiveNode,
+  isUndoNode,
+  isConfirmationNode,
+  buildGlobalFeatures,
+  createCandidate,
+  numberOrZero
+} = require("./featureExtractor");
 
-const normalizeText = (value) => {
-  return String(value || "").toLowerCase().trim();
-};
-
-const includesAny = (value, keywords) => {
-  const text = normalizeText(value);
-  return keywords.some(keyword => text.includes(keyword));
-};
-
-const getNodeLabel = (node) => {
-  return normalizeText(`${node.name || ""} ${node.text || ""}`);
-};
-
-const getFrames = (nodes) => {
-  return nodes.filter(node => ["FRAME", "GROUP", "COMPONENT", "INSTANCE"].includes(node.type));
-};
-
-const getChildren = (nodes, parentId) => {
-  return nodes.filter(node => node.parentId === parentId);
-};
-
-const getActionNodes = (nodes, keywords) => {
-  return nodes.filter(node => includesAny(getNodeLabel(node), keywords));
-};
-
-const isModalLike = (node, allNodes) => {
-  const label = getNodeLabel(node);
-  const children = getChildren(allNodes, node.nodeId);
-
-  const nameLooksLikeModal = includesAny(label, MODAL_KEYWORDS);
-  const structureLooksLikeModal =
-    children.length >= 2 &&
-    Number(node.width || 0) >= 220 &&
-    Number(node.height || 0) >= 140;
-
-  return nameLooksLikeModal || structureLooksLikeModal;
-};
-
-const detectMissingExitControls = (nodes) => {
+const detectMissingBackCancelClose = (nodes, globalFeatures) => {
   const candidates = [];
-  const frames = getFrames(nodes);
+  const modalNodes = nodes.filter(node => isModalLike(node, nodes));
+  const topLevelScreens = nodes.filter(node => !node.parentId || String(node.type || "").toUpperCase() === "FRAME");
 
-  frames.forEach((frame) => {
-    const frameLabel = getNodeLabel(frame);
-    const children = getChildren(nodes, frame.nodeId);
+  const targets = modalNodes.length > 0 ? modalNodes : topLevelScreens.slice(0, 1);
 
-    const frameNeedsExit =
-      isModalLike(frame, nodes) ||
-      frameLabel.includes("login") ||
-      frameLabel.includes("register") ||
-      frameLabel.includes("form") ||
-      frameLabel.includes("settings");
+  targets.forEach((target) => {
+    const related = [target, ...getChildren(target, nodes)];
+    const hasExit = target.hasCloseButton === true || related.some(isExitNode) || nodes.some(isExitNode);
+    const isModalTarget = isModalLike(target, nodes);
+    const evidenceScore = hasExit ? 0 : Math.min(1, isModalTarget ? 0.9 : 0.62);
 
-    if (!frameNeedsExit) {
-      return;
-    }
-
-    const exitControls = children.filter(child => includesAny(getNodeLabel(child), EXIT_KEYWORDS));
-
-    if (exitControls.length === 0) {
-      candidates.push({
-        type: "missing_exit_control",
+    if (!hasExit && (isModalTarget || nodes.length >= 6)) {
+      candidates.push(createCandidate({
+        moduleName: "error",
+        candidateType: "missing_exit_control",
         displayType: "Missing Back, Cancel, or Close Control",
-        category: "user_control",
-        nodeId: frame.nodeId,
-        nodeName: frame.name,
-        nodeType: frame.type,
-        evidenceScore: isModalLike(frame, nodes) ? 0.86 : 0.62,
-        message: "This screen appears to require a safe exit option, but no Back, Cancel, or Close control was detected.",
+        node: target,
+        evidenceScore,
+        principle: "User Control and Freedom",
+        message: "Users are not given a clear Back, Cancel, or Close control to leave the current flow safely.",
         evidence: {
-          frameLabel,
-          childCount: children.length,
-          isModalLike: isModalLike(frame, nodes),
-          exitControlCount: exitControls.length
+          ...globalFeatures,
+          isModalLike: isModalTarget ? 1 : globalFeatures.isModalLike,
+          hasExitControl: 0,
+          modalConfidence: isModalTarget ? Math.max(globalFeatures.modalConfidence, 0.8) : globalFeatures.modalConfidence,
+          layoutGroupSize: related.length
         }
-      });
+      }));
     }
   });
 
   return candidates;
 };
 
-const detectDestructiveActionsWithoutUndo = (nodes) => {
+const detectDestructiveWithoutUndo = (nodes, globalFeatures) => {
   const candidates = [];
-  const destructiveNodes = getActionNodes(nodes, DESTRUCTIVE_KEYWORDS);
-  const undoNodes = getActionNodes(nodes, UNDO_KEYWORDS);
+  const destructiveNodes = nodes.filter(isDestructiveNode);
+  if (destructiveNodes.length === 0) return candidates;
+
+  const hasUndo = nodes.some(isUndoNode);
+  if (hasUndo) return candidates;
 
   destructiveNodes.forEach((node) => {
-    const nodeParentId = node.parentId;
-    const localSiblings = nodes.filter(item => item.parentId === nodeParentId);
-    const localUndo = localSiblings.filter(item => includesAny(getNodeLabel(item), UNDO_KEYWORDS));
-
-    const hasGlobalUndo = undoNodes.length > 0;
-    const hasLocalUndo = localUndo.length > 0;
-
-    if (!hasGlobalUndo && !hasLocalUndo) {
-      candidates.push({
-        type: "destructive_without_undo",
-        displayType: "Destructive Action Without Undo",
-        category: "error_recovery",
-        nodeId: node.nodeId,
-        nodeName: node.name,
-        nodeType: node.type,
-        evidenceScore: 0.84,
-        message: "A destructive action is present, but no clear undo or recovery option was detected.",
-        evidence: {
-          actionLabel: getNodeLabel(node),
-          localUndoCount: localUndo.length,
-          globalUndoCount: undoNodes.length
-        }
-      });
-    }
+    candidates.push(createCandidate({
+      moduleName: "error",
+      candidateType: "destructive_without_undo",
+      displayType: "Destructive Action Without Undo",
+      node,
+      evidenceScore: Math.min(1, 0.72 + destructiveNodes.length * 0.06),
+      principle: "Error Prevention",
+      message: "A destructive action is present, but the interface does not show an Undo, Restore, or recovery option.",
+      evidence: {
+        ...globalFeatures,
+        hasDestructiveAction: 1,
+        destructiveActionCount: destructiveNodes.length,
+        hasUndoOption: 0
+      }
+    }));
   });
 
   return candidates;
 };
 
-const detectIrreversibleActionsWithoutConfirmation = (nodes) => {
+const detectIrreversibleWithoutConfirmation = (nodes, globalFeatures) => {
   const candidates = [];
-  const destructiveNodes = getActionNodes(nodes, DESTRUCTIVE_KEYWORDS);
-  const frames = getFrames(nodes);
+  const destructiveNodes = nodes.filter(isDestructiveNode);
+  if (destructiveNodes.length === 0) return candidates;
 
-  const confirmationFrames = frames.filter(frame => {
-    const frameLabel = getNodeLabel(frame);
-    const children = getChildren(nodes, frame.nodeId);
-    const hasConfirmationName = includesAny(frameLabel, CONFIRMATION_KEYWORDS) ||
-      includesAny(frameLabel, MODAL_KEYWORDS);
+  const confirmationNodes = nodes.filter(isConfirmationNode);
+  const modalNodes = nodes.filter(node => isModalLike(node, nodes));
+  const hasConfirmation = confirmationNodes.length > 0 || modalNodes.some(node => numberOrZero(node.width) > 0 && numberOrZero(node.height) > 0);
 
-    const childLabels = children.map(child => getNodeLabel(child)).join(" ");
-    const hasConfirmAndCancel =
-      includesAny(childLabels, ["confirm", "yes", "delete", "remove"]) &&
-      includesAny(childLabels, ["cancel", "no", "back"]);
-
-    return hasConfirmationName || hasConfirmAndCancel;
-  });
-
-  destructiveNodes.forEach((node) => {
-    const relatedConfirmation = confirmationFrames.find(frame => {
-      const frameLabel = getNodeLabel(frame);
-      const actionLabel = getNodeLabel(node);
-
-      return frameLabel.includes("confirm") ||
-        frameLabel.includes("delete") ||
-        frameLabel.includes("remove") ||
-        actionLabel.includes("delete") ||
-        actionLabel.includes("remove");
-    });
-
-    if (!relatedConfirmation) {
-      candidates.push({
-        type: "irreversible_without_confirmation",
+  if (!hasConfirmation) {
+    destructiveNodes.forEach((node) => {
+      candidates.push(createCandidate({
+        moduleName: "error",
+        candidateType: "irreversible_without_confirmation",
         displayType: "Irreversible Action Without Confirmation",
-        category: "error_recovery",
-        nodeId: node.nodeId,
-        nodeName: node.name,
-        nodeType: node.type,
-        evidenceScore: 0.82,
-        message: "A destructive or irreversible action was found without a clear confirmation dialog.",
+        node,
+        evidenceScore: Math.min(1, 0.78 + destructiveNodes.length * 0.05),
+        principle: "Error Prevention",
+        message: "An irreversible or risky action appears without a confirmation dialog or warning step.",
         evidence: {
-          actionLabel: getNodeLabel(node),
-          confirmationFrameCount: confirmationFrames.length
+          ...globalFeatures,
+          hasDestructiveAction: 1,
+          hasConfirmationDialog: 0,
+          destructiveActionCount: destructiveNodes.length,
+          confirmationControlCount: 0
         }
-      });
-    }
-  });
+      }));
+    });
+  }
 
   return candidates;
 };
 
 const analyzeErrorHandlingPatterns = (designData) => {
-  const nodes = Array.isArray(designData.nodes) ? designData.nodes : [];
+  const nodes = getNodes(designData);
+  const globalFeatures = buildGlobalFeatures(nodes, "error");
 
   return [
-    ...detectMissingExitControls(nodes),
-    ...detectDestructiveActionsWithoutUndo(nodes),
-    ...detectIrreversibleActionsWithoutConfirmation(nodes)
+    ...detectMissingBackCancelClose(nodes, globalFeatures),
+    ...detectDestructiveWithoutUndo(nodes, globalFeatures),
+    ...detectIrreversibleWithoutConfirmation(nodes, globalFeatures)
   ];
 };
 

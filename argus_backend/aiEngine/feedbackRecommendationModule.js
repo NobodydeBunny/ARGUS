@@ -1,80 +1,114 @@
 const recommendationTemplates = {
-  add_exit_control: {
-    recommendation: "Add a clear Close, Cancel, Back, or X control so users can leave the screen safely.",
-    explanation: "A screen that behaves like a modal or dialog should provide a visible way to dismiss it.",
-    priority: "high"
+  missing_exit_control: {
+    short: "Add a clear Close, Cancel, or Back option.",
+    detail: "Provide a visible exit control so users can safely leave the modal, dialog, or current flow without being trapped.",
+    fixType: "navigation_control"
   },
-  standardize_spacing: {
-    recommendation: "Review the spacing pattern and make repeated components follow the same spacing structure.",
-    explanation: "Repeated UI elements should use a consistent spacing rhythm to avoid visual confusion.",
-    priority: "medium"
+  spacing_inconsistency: {
+    short: "Standardize spacing between similar elements.",
+    detail: "Use a consistent spacing scale, such as 8px, 16px, or 24px, for related labels, inputs, cards, and buttons.",
+    fixType: "spacing"
   },
-  standardize_component_shape: {
-    recommendation: "Make similar buttons use the same corner radius, height, width, and proportions.",
-    explanation: "Buttons with the same role should look visually related across the interface.",
-    priority: "medium"
+  button_shape_inconsistency: {
+    short: "Make similar buttons use the same shape style.",
+    detail: "Keep button corner radius, height, width pattern, and proportions consistent for buttons with similar roles.",
+    fixType: "component_style"
   },
-  align_to_common_layout_pattern: {
-    recommendation: "Align the element with the dominant layout line or grid used by nearby elements.",
-    explanation: "Consistent alignment improves visual order and helps users scan the interface faster.",
-    priority: "medium"
+  alignment_inconsistency: {
+    short: "Align related elements to a common grid or edge.",
+    detail: "Place related labels, fields, buttons, and text blocks on a consistent alignment line to improve scanability.",
+    fixType: "layout_alignment"
   },
-  reduce_density_and_group_controls: {
-    recommendation: "Reduce unnecessary controls or group related elements into clearer sections.",
-    explanation: "Dense screens can increase visual load and make important actions harder to identify.",
-    priority: "medium"
+  overloaded_screen: {
+    short: "Reduce screen density and group controls clearly.",
+    detail: "Split dense content into smaller sections, use grouping, or move secondary actions to another screen or progressive disclosure pattern.",
+    fixType: "information_architecture"
   },
-  standardize_action_color: {
-    recommendation: "Use a consistent color for the same action across the interface.",
-    explanation: "The same action should not appear in multiple unrelated colors unless there is a clear reason.",
-    priority: "medium"
+  color_inconsistency: {
+    short: "Use one color meaning for the same action.",
+    detail: "Create a consistent color token for each action type so the same action does not appear with different meanings across the interface.",
+    fixType: "color_token"
   },
-  differentiate_action_colors: {
-    recommendation: "Use visually different colors or styles for actions with different meanings.",
-    explanation: "Different actions sharing the same color can make the interface harder to understand.",
-    priority: "medium"
+  same_color_different_actions: {
+    short: "Differentiate colors for actions with different meanings.",
+    detail: "Use separate visual styles for primary, secondary, cancel, warning, and destructive actions so users can understand action meaning quickly.",
+    fixType: "color_semantics"
   },
-  improve_error_state_visibility: {
-    recommendation: "Make the error message visually distinct using stronger color, contrast, icon, or spacing.",
-    explanation: "Error states should stand out clearly so users can recognize and recover from mistakes.",
-    priority: "high"
+  weak_error_visibility: {
+    short: "Improve error and warning visibility.",
+    detail: "Use stronger contrast, clearer error color, icon support, and spacing so validation and warning messages stand out from the background.",
+    fixType: "accessibility_color"
   },
-  add_back_cancel_or_close: {
-    recommendation: "Add a Back, Cancel, or Close option to support safe navigation.",
-    explanation: "Users need a visible way to leave a screen or reverse an action.",
-    priority: "high"
+  low_contrast_error_message: {
+    short: "Increase the contrast of error text.",
+    detail: "Ensure error text reaches at least a readable contrast level against its background and does not blend into nearby UI colors.",
+    fixType: "accessibility_color"
   },
-  add_undo_or_recovery_option: {
-    recommendation: "Add an Undo option or recovery message after destructive actions.",
-    explanation: "Destructive actions should give users a chance to recover from mistakes.",
-    priority: "high"
+  poor_error_state_styling: {
+    short: "Use a clearer error-state style.",
+    detail: "Combine color, icon, border, and short helper text so error states are understandable even without relying on color alone.",
+    fixType: "error_state_design"
   },
-  add_confirmation_step: {
-    recommendation: "Add a confirmation step with Confirm and Cancel options before irreversible actions.",
-    explanation: "Irreversible actions should not happen without clear user confirmation.",
-    priority: "high"
+  destructive_without_undo: {
+    short: "Provide Undo, Restore, or recovery for destructive actions.",
+    detail: "Give users a way to recover after destructive actions, especially for delete, reset, remove, or discard operations.",
+    fixType: "error_recovery"
+  },
+  irreversible_without_confirmation: {
+    short: "Add confirmation before irreversible actions.",
+    detail: "Show a confirmation dialog or warning step before actions that can permanently delete, reset, or remove user data.",
+    fixType: "confirmation_flow"
+  },
+  no_issue: {
+    short: "No immediate action needed.",
+    detail: "The selected interface does not show a detectable issue for this objective based on the current metadata.",
+    fixType: "none"
   },
   review_ui_pattern: {
-    recommendation: "Review this element because it differs from the surrounding UI pattern.",
-    explanation: "The system detected a possible mismatch compared with the overall design structure.",
-    priority: "medium"
+    short: "Review this UI pattern manually.",
+    detail: "The model detected a possible issue, but the evidence is not strong enough for a more specific automated recommendation.",
+    fixType: "manual_review"
   }
+};
+
+const suggestionCategoryToIssueLabel = {
+  add_exit_control: "missing_exit_control",
+  add_back_cancel_or_close: "missing_exit_control",
+  standardize_spacing: "spacing_inconsistency",
+  standardize_component_shape: "button_shape_inconsistency",
+  align_to_common_layout_pattern: "alignment_inconsistency",
+  reduce_density_and_group_controls: "overloaded_screen",
+  standardize_action_color: "color_inconsistency",
+  differentiate_action_colors: "same_color_different_actions",
+  improve_error_state_visibility: "weak_error_visibility",
+  add_undo_or_recovery_option: "destructive_without_undo",
+  add_confirmation_step: "irreversible_without_confirmation",
+  no_action_needed: "no_issue"
+};
+
+const getTemplate = (issue) => {
+  const label = issue.issueLabel || issue.candidateType || suggestionCategoryToIssueLabel[issue.recommendationCategory];
+  return recommendationTemplates[label] || recommendationTemplates[issue.recommendationCategory] || recommendationTemplates.review_ui_pattern;
 };
 
 const applyRecommendations = (issues) => {
   return issues.map((issue) => {
-    const template = recommendationTemplates[issue.recommendationCategory] ||
-      recommendationTemplates.review_ui_pattern;
+    const template = getTemplate(issue);
+    const confidence = Number(issue.confidenceScore || issue.evidenceScore || 0.6);
+    const priority = issue.severity === "high" ? "high" : issue.severity === "medium" ? "medium" : "low";
 
     return {
       ...issue,
-      recommendation: template.recommendation,
-      explanation: template.explanation,
-      suggestionPriority: template.priority
+      recommendation: template.short,
+      explanation: template.detail,
+      suggestionPriority: priority,
+      fixType: issue.fixType || template.fixType,
+      confidenceScore: Number(Math.max(0, Math.min(1, confidence)).toFixed(3))
     };
   });
 };
 
 module.exports = {
+  recommendationTemplates,
   applyRecommendations
 };

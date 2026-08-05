@@ -30,16 +30,6 @@ app.use("/api/reports", require("./routes/reportRoutes"));
 app.use("/api/sessions", require("./routes/sessionRoutes"));
 app.use("/api/suggestions", require("./routes/suggestionRoutes"));
 
-app.get("/health", (req, res) => {
-    res.status(200).json({
-        status: "online",
-        database: "connected",
-        service: "Argus Backend",
-        version: "1.0.0",
-        timestamp: new Date().toISOString()
-    });
-});
-
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

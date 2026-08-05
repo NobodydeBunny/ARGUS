@@ -1,317 +1,232 @@
-const EXIT_KEYWORDS = ["close", "cancel", "back", "dismiss", "return"];
-const MODAL_KEYWORDS = ["modal", "dialog", "popup", "overlay"];
-const BUTTON_HINTS = ["button", "login", "register", "submit", "save", "delete", "remove", "reset", "confirm", "continue", "next"];
+const {
+  getNodes,
+  getChildren,
+  isFrameLike,
+  isModalLike,
+  isExitNode,
+  isButtonLike,
+  isInputLike,
+  isInteractive,
+  buildGlobalFeatures,
+  createCandidate,
+  calculateVerticalGaps,
+  calculateAlignmentStats,
+  numberOrZero,
+  average,
+  range,
+  standardDeviation
+} = require("./featureExtractor");
 
-const normalizeText = (value) => {
-  return String(value || "").toLowerCase().trim();
+const getPrimaryContainer = (nodes) => {
+  const frames = nodes.filter(isFrameLike);
+  if (frames.length === 0) return nodes[0] || null;
+  return frames.sort((first, second) => {
+    const firstArea = numberOrZero(first.width) * numberOrZero(first.height);
+    const secondArea = numberOrZero(second.width) * numberOrZero(second.height);
+    return secondArea - firstArea;
+  })[0];
 };
 
-const includesAny = (value, keywords) => {
-  const text = normalizeText(value);
-  return keywords.some(keyword => text.includes(keyword));
-};
-
-const getNodeLabel = (node) => {
-  return normalizeText(`${node.name || ""} ${node.text || ""}`);
-};
-
-const getChildren = (nodes, parentId) => {
-  return nodes.filter(node => node.parentId === parentId);
-};
-
-const getFrames = (nodes) => {
-  return nodes.filter(node => ["FRAME", "GROUP", "COMPONENT", "INSTANCE"].includes(node.type));
-};
-
-const isButtonLike = (node) => {
-  const label = getNodeLabel(node);
-  const hasButtonName = includesAny(label, BUTTON_HINTS);
-  const hasButtonShape = Number(node.width) >= 40 && Number(node.height) >= 20 && node.cornerRadius != null;
-
-  return hasButtonName || hasButtonShape;
-};
-
-const calculatePatternDeviation = (value, values) => {
-  const validValues = values
-    .map(Number)
-    .filter(number => Number.isFinite(number));
-
-  if (validValues.length < 2 || !Number.isFinite(Number(value))) {
-    return 0;
-  }
-
-  const average = validValues.reduce((sum, item) => sum + item, 0) / validValues.length;
-  const variance = validValues.reduce((sum, item) => sum + Math.pow(item - average, 2), 0) / validValues.length;
-  const standardDeviation = Math.sqrt(variance);
-
-  if (standardDeviation === 0) {
-    return Math.abs(Number(value) - average) > 0 ? 1 : 0;
-  }
-
-  return Math.abs(Number(value) - average) / standardDeviation;
-};
-
-const scoreFromDeviation = (deviation) => {
-  if (deviation >= 3) return 0.95;
-  if (deviation >= 2) return 0.8;
-  if (deviation >= 1.5) return 0.65;
-  if (deviation >= 1) return 0.5;
-  return 0;
-};
-
-const detectModalExitCandidates = (nodes) => {
+const detectModalWithoutExit = (nodes, globalFeatures) => {
   const candidates = [];
-  const frames = getFrames(nodes);
+  const modalNodes = nodes.filter(node => isModalLike(node, nodes));
 
-  frames.forEach((frame) => {
-    const frameLabel = getNodeLabel(frame);
-    const children = getChildren(nodes, frame.nodeId);
+  modalNodes.forEach((modal) => {
+    const modalChildren = getChildren(modal, nodes);
+    const allRelatedNodes = [modal, ...modalChildren];
+    const hasExitControl = modal.hasCloseButton === true || allRelatedNodes.some(isExitNode);
+    const modalArea = numberOrZero(modal.width) * numberOrZero(modal.height);
+    const evidenceScore = hasExitControl ? 0 : Math.min(1, 0.55 + (modalArea > 0 ? 0.2 : 0) + (modalChildren.length > 2 ? 0.15 : 0));
 
-    const nameLooksModal = includesAny(frameLabel, MODAL_KEYWORDS);
-    const overlayLike = children.length >= 2 && Number(frame.width) >= 220 && Number(frame.height) >= 160;
-
-    if (!nameLooksModal && !overlayLike) {
-      return;
-    }
-
-    const exitControls = children.filter(child => includesAny(getNodeLabel(child), EXIT_KEYWORDS));
-    const evidenceScore = exitControls.length === 0
-      ? nameLooksModal ? 0.9 : 0.68
-      : 0;
-
-    if (evidenceScore > 0) {
-      candidates.push({
-        type: "modal_without_exit",
-        displayType: "Modal or Dialog Without Exit Option",
-        category: "user_control",
-        nodeId: frame.nodeId,
-        nodeName: frame.name,
-        nodeType: frame.type,
+    if (!hasExitControl) {
+      candidates.push(createCandidate({
+        moduleName: "layout",
+        candidateType: "missing_exit_control",
+        displayType: "Modal/Dialog Without Exit Option",
+        node: modal,
         evidenceScore,
-        message: "This screen behaves like a modal or dialog, but no visible exit control was detected.",
+        principle: "User Control and Freedom",
+        message: "A modal or dialog-like layout does not provide a clear Close, Cancel, or Back control.",
         evidence: {
-          nameLooksModal,
-          overlayLike,
-          childCount: children.length,
-          exitControlCount: exitControls.length
+          ...globalFeatures,
+          isModalLike: 1,
+          modalConfidence: Math.max(globalFeatures.modalConfidence, evidenceScore),
+          hasExitControl: 0,
+          overlayPresent: modal.overlay === true || globalFeatures.overlayPresent,
+          layoutGroupSize: modalChildren.length
         }
-      });
+      }));
     }
   });
 
   return candidates;
 };
 
-const detectSpacingPatternCandidates = (nodes) => {
+const detectSpacingInconsistency = (nodes, globalFeatures) => {
   const candidates = [];
-  const grouped = {};
+  const container = getPrimaryContainer(nodes) || { name: "Current Design", type: "FRAME" };
+  const comparableNodes = nodes.filter(node => !isFrameLike(node) && Number.isFinite(Number(node.y)) && Number.isFinite(Number(node.height)));
+  const interactiveNodes = comparableNodes.filter(node => isInteractive(node) || isInputLike(node) || isButtonLike(node));
+  const targetNodes = interactiveNodes.length >= 3 ? interactiveNodes : comparableNodes;
+  const verticalGaps = calculateVerticalGaps(targetNodes);
+  const itemSpacing = nodes.map(node => numberOrZero(node.itemSpacing || node.spacing)).filter(value => value > 0 && value < 250);
+  const spacingValues = verticalGaps.concat(itemSpacing);
 
-  nodes.forEach((node) => {
-    if (node.itemSpacing == null) {
-      return;
-    }
+  if (spacingValues.length < 3) return candidates;
 
-    const key = node.mainComponentId || node.componentId || normalizeText(node.name);
+  const spacingDeviation = standardDeviation(spacingValues);
+  const maxSpacingGap = range(spacingValues);
+  const evidenceScore = Math.min(1, Math.max(spacingDeviation / 28, maxSpacingGap / 90));
 
-    if (!key) {
-      return;
-    }
-
-    if (!grouped[key]) {
-      grouped[key] = [];
-    }
-
-    grouped[key].push(node);
-  });
-
-  Object.values(grouped).forEach((group) => {
-    if (group.length < 2) {
-      return;
-    }
-
-    const spacingValues = group.map(node => node.itemSpacing);
-
-    group.forEach((node) => {
-      const deviation = calculatePatternDeviation(node.itemSpacing, spacingValues);
-      const evidenceScore = scoreFromDeviation(deviation);
-
-      if (evidenceScore >= 0.5) {
-        candidates.push({
-          type: "spacing_inconsistency",
-          displayType: "Spacing Pattern Inconsistency",
-          category: "layout_consistency",
-          nodeId: node.nodeId,
-          nodeName: node.name,
-          nodeType: node.type,
-          evidenceScore,
-          message: "This repeated component uses a spacing pattern that differs from similar components.",
-          evidence: {
-            itemSpacing: node.itemSpacing,
-            groupSpacingValues: spacingValues,
-            deviation
-          }
-        });
+  if (spacingDeviation >= 10 || maxSpacingGap >= 35) {
+    candidates.push(createCandidate({
+      moduleName: "layout",
+      candidateType: "spacing_inconsistency",
+      displayType: "Inconsistent Spacing Between Similar Components",
+      node: container,
+      evidenceScore,
+      principle: "Consistency and Standards",
+      message: "Similar interface elements have noticeably inconsistent spacing or vertical rhythm.",
+      evidence: {
+        ...globalFeatures,
+        averageSpacing: average(spacingValues),
+        spacingDeviation,
+        maxSpacingGap,
+        layoutGroupSize: targetNodes.length,
+        spacingValues: spacingValues.slice(0, 20)
       }
-    });
-  });
+    }));
+  }
 
   return candidates;
 };
 
-const detectButtonShapeCandidates = (nodes) => {
+const detectButtonShapeInconsistency = (nodes, globalFeatures) => {
   const candidates = [];
   const buttons = nodes.filter(isButtonLike);
-  const groups = {};
 
-  buttons.forEach((button) => {
-    const label = normalizeText(button.text || button.name || "button");
-    const actionKey = button.mainComponentId || button.componentId || label;
+  if (buttons.length < 2) return candidates;
 
-    if (!groups[actionKey]) {
-      groups[actionKey] = [];
-    }
+  const radiusValues = buttons.map(node => numberOrZero(node.cornerRadius)).filter(value => Number.isFinite(value));
+  const heightValues = buttons.map(node => numberOrZero(node.height)).filter(value => value > 0);
+  const widthValues = buttons.map(node => numberOrZero(node.width)).filter(value => value > 0);
+  const ratioValues = buttons.map(node => numberOrZero(node.width) / Math.max(numberOrZero(node.height), 1)).filter(Number.isFinite);
 
-    groups[actionKey].push(button);
-  });
+  const cornerRadiusDeviation = range(radiusValues);
+  const buttonHeightDeviation = range(heightValues);
+  const buttonWidthDeviation = range(widthValues);
+  const buttonAspectRatioDeviation = range(ratioValues);
+  const evidenceScore = Math.min(1, Math.max(
+    cornerRadiusDeviation / 22,
+    buttonHeightDeviation / 28,
+    buttonAspectRatioDeviation / 2.4
+  ));
 
-  Object.values(groups).forEach((group) => {
-    if (group.length < 2) {
-      return;
-    }
-
-    const radiusValues = group.map(button => button.cornerRadius || 0);
-    const heightValues = group.map(button => button.height || 0);
-    const widthValues = group.map(button => button.width || 0);
-
-    group.forEach((button) => {
-      const radiusScore = scoreFromDeviation(calculatePatternDeviation(button.cornerRadius || 0, radiusValues));
-      const heightScore = scoreFromDeviation(calculatePatternDeviation(button.height || 0, heightValues));
-      const widthScore = scoreFromDeviation(calculatePatternDeviation(button.width || 0, widthValues));
-      const evidenceScore = Math.max(radiusScore, heightScore, widthScore);
-
-      if (evidenceScore >= 0.5) {
-        candidates.push({
-          type: "button_shape_inconsistency",
-          displayType: "Button Shape Inconsistency",
-          category: "layout_consistency",
-          nodeId: button.nodeId,
-          nodeName: button.name,
-          nodeType: button.type,
-          evidenceScore,
-          message: "This button differs in shape or proportion compared with similar button elements.",
-          evidence: {
-            cornerRadius: button.cornerRadius,
-            width: button.width,
-            height: button.height,
-            groupRadiusValues: radiusValues,
-            groupHeightValues: heightValues,
-            groupWidthValues: widthValues
-          }
-        });
+  if (cornerRadiusDeviation >= 8 || buttonHeightDeviation >= 16 || buttonAspectRatioDeviation >= 1.2) {
+    const mostDeviatedButton = [...buttons].sort((first, second) => numberOrZero(second.cornerRadius) - numberOrZero(first.cornerRadius))[0];
+    candidates.push(createCandidate({
+      moduleName: "layout",
+      candidateType: "button_shape_inconsistency",
+      displayType: "Button Shape Inconsistency",
+      node: mostDeviatedButton,
+      evidenceScore,
+      principle: "Consistency and Standards",
+      message: "Buttons with similar roles use inconsistent corner radius, height, width, or shape proportions.",
+      evidence: {
+        ...globalFeatures,
+        cornerRadiusDeviation,
+        buttonHeightDeviation,
+        buttonWidthDeviation,
+        buttonAspectRatioDeviation,
+        layoutGroupSize: buttons.length,
+        radiusValues,
+        heightValues,
+        widthValues
       }
-    });
-  });
-
-  return candidates;
-};
-
-const detectAlignmentCandidates = (nodes) => {
-  const candidates = [];
-  const visibleNodes = nodes.filter(node => node.visible !== false && Number.isFinite(Number(node.x)));
-
-  if (visibleNodes.length < 4) {
-    return candidates;
+    }));
   }
 
-  const xValues = visibleNodes.map(node => Number(node.x));
-  const yValues = visibleNodes.map(node => Number(node.y || 0));
+  return candidates;
+};
 
-  visibleNodes.forEach((node) => {
-    const xDeviation = calculatePatternDeviation(node.x, xValues);
-    const yDeviation = calculatePatternDeviation(node.y || 0, yValues);
-    const evidenceScore = Math.max(scoreFromDeviation(xDeviation), scoreFromDeviation(yDeviation));
+const detectAlignmentInconsistency = (nodes, globalFeatures) => {
+  const candidates = [];
+  const container = getPrimaryContainer(nodes) || { name: "Current Design", type: "FRAME" };
+  const comparableNodes = nodes.filter(node => !isFrameLike(node) && Number.isFinite(Number(node.x)));
 
-    if (evidenceScore >= 0.65) {
-      candidates.push({
-        type: "alignment_inconsistency",
-        displayType: "Inconsistent Alignment",
-        category: "layout_consistency",
-        nodeId: node.nodeId,
-        nodeName: node.name,
-        nodeType: node.type,
-        evidenceScore,
-        message: "This element appears to break the dominant alignment pattern of the surrounding interface.",
-        evidence: {
-          x: node.x,
-          y: node.y,
-          xDeviation,
-          yDeviation
-        }
-      });
-    }
-  });
+  if (comparableNodes.length < 4) return candidates;
+
+  const stats = calculateAlignmentStats(comparableNodes);
+  const evidenceScore = Math.min(1, Math.max(stats.alignmentDeviation / 90, stats.misalignedElementCount / Math.max(comparableNodes.length, 1)));
+
+  if (stats.alignmentDeviation >= 28 && stats.misalignedElementCount >= 1) {
+    candidates.push(createCandidate({
+      moduleName: "layout",
+      candidateType: "alignment_inconsistency",
+      displayType: "Inconsistent Alignment",
+      node: container,
+      evidenceScore,
+      principle: "Consistency and Standards",
+      message: "One or more related interface elements deviate from the dominant alignment pattern.",
+      evidence: {
+        ...globalFeatures,
+        alignmentDeviation: stats.alignmentDeviation,
+        misalignedElementCount: stats.misalignedElementCount,
+        expectedX: stats.expectedX,
+        xPositions: stats.xPositions.slice(0, 25),
+        layoutGroupSize: comparableNodes.length
+      }
+    }));
+  }
 
   return candidates;
 };
 
-const detectDensityCandidates = (nodes) => {
+const detectOverloadedScreen = (nodes, globalFeatures) => {
   const candidates = [];
-  const frames = getFrames(nodes);
+  const container = getPrimaryContainer(nodes) || { name: "Current Design", type: "FRAME" };
+  const screenArea = Math.max(numberOrZero(container.width) * numberOrZero(container.height), 1);
+  const interactiveCount = nodes.filter(isInteractive).length;
+  const textCount = nodes.filter(node => String(node.type || "").toUpperCase() === "TEXT").length;
+  const controlDensity = interactiveCount / (screenArea / 10000);
+  const totalDensity = nodes.length / (screenArea / 10000);
+  const evidenceScore = Math.min(1, Math.max(controlDensity / 0.55, totalDensity / 0.85, nodes.length / 44));
 
-  frames.forEach((frame) => {
-    const children = getChildren(nodes, frame.nodeId);
-
-    if (children.length < 8) {
-      return;
-    }
-
-    const frameArea = Number(frame.width || 0) * Number(frame.height || 0);
-    const controls = children.filter(child => isButtonLike(child) || child.type === "TEXT");
-    const density = frameArea > 0 ? controls.length / (frameArea / 10000) : 0;
-
-    const siblingFrames = frames.filter(item => item.parentId === frame.parentId && item.nodeId !== frame.nodeId);
-    const siblingDensities = siblingFrames.map((item) => {
-      const siblingChildren = getChildren(nodes, item.nodeId);
-      const siblingArea = Number(item.width || 0) * Number(item.height || 0);
-      const siblingControls = siblingChildren.filter(child => isButtonLike(child) || child.type === "TEXT");
-      return siblingArea > 0 ? siblingControls.length / (siblingArea / 10000) : 0;
-    });
-
-    const comparisonValues = siblingDensities.length > 0 ? siblingDensities.concat(density) : [density, 0.4];
-    const evidenceScore = scoreFromDeviation(calculatePatternDeviation(density, comparisonValues));
-
-    if (evidenceScore >= 0.5) {
-      candidates.push({
-        type: "overloaded_screen",
-        displayType: "Overloaded Screen",
-        category: "screen_efficiency",
-        nodeId: frame.nodeId,
-        nodeName: frame.name,
-        nodeType: frame.type,
-        evidenceScore,
-        message: "This screen appears denser than the surrounding interface pattern.",
-        evidence: {
-          childCount: children.length,
-          controlCount: controls.length,
-          density,
-          siblingDensities
-        }
-      });
-    }
-  });
+  if (nodes.length >= 28 || interactiveCount >= 12 || controlDensity >= 0.42) {
+    candidates.push(createCandidate({
+      moduleName: "layout",
+      candidateType: "overloaded_screen",
+      displayType: "Overloaded Screen",
+      node: container,
+      evidenceScore,
+      principle: "Flexibility and Efficiency of Use",
+      message: "The screen contains a high density of UI elements, which can make the interface difficult to scan and use efficiently.",
+      evidence: {
+        ...globalFeatures,
+        nodeCount: nodes.length,
+        screenArea,
+        interactiveElementCount: interactiveCount,
+        textElementCount: textCount,
+        controlDensity,
+        textDensity: textCount / (screenArea / 10000),
+        layoutGroupSize: nodes.length
+      }
+    }));
+  }
 
   return candidates;
 };
 
 const analyzeLayoutPatterns = (designData) => {
-  const nodes = Array.isArray(designData.nodes) ? designData.nodes : [];
+  const nodes = getNodes(designData);
+  const globalFeatures = buildGlobalFeatures(nodes, "layout");
 
   return [
-    ...detectModalExitCandidates(nodes),
-    ...detectSpacingPatternCandidates(nodes),
-    ...detectButtonShapeCandidates(nodes),
-    ...detectAlignmentCandidates(nodes),
-    ...detectDensityCandidates(nodes)
+    ...detectModalWithoutExit(nodes, globalFeatures),
+    ...detectSpacingInconsistency(nodes, globalFeatures),
+    ...detectButtonShapeInconsistency(nodes, globalFeatures),
+    ...detectAlignmentInconsistency(nodes, globalFeatures),
+    ...detectOverloadedScreen(nodes, globalFeatures)
   ];
 };
 
