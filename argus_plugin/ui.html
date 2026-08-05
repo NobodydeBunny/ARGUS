@@ -47,18 +47,15 @@
       gap: 10px;
     }
 
-    .logo {
-      width: 38px;
-      height: 38px;
-      border-radius: 12px;
-      background: #1976ff;
-      color: #ffffff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 20px;
-      box-shadow: 0 8px 18px rgba(25, 118, 255, 0.25);
-    }
+   .eye-icon {
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
+    display: block;
+    border-radius: 10px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+}
+    
 
     .header h2 {
       font-size: 22px;
@@ -95,18 +92,22 @@
       display: flex;
       justify-content: center;
     }
+    .analysis-image-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 
-    .illustration {
-      width: 210px;
-      height: 165px;
-      background: #ffffff;
-      border-radius: 18px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 64px;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-    }
+
+.analysis-image {
+    width: 379px;
+    height: 330px;
+    object-fit: contain;
+    display: block;
+    border-radius: 18px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+}
+
 
     .welcome-title {
       margin-top: 32px;
@@ -124,9 +125,7 @@
       padding-bottom: 18px;
     }
 
-    button {
-      font-family: inherit;
-    }
+  
 
     .primary-btn,
     .start-btn {
@@ -615,15 +614,19 @@
     <section id="welcomePage" class="page active">
       <div class="header">
         <div class="left">
-          <div class="logo">👁</div>
+        <img src="images/eye-icon.png" alt="View icon" class="eye-icon">
           <h2>Argus</h2>
         </div>
         <button class="close-btn" id="welcomeCloseBtn">✕</button>
       </div>
 
-      <div class="hero">
-        <div class="illustration">🔍</div>
-      </div>
+      <div class="analysis-image-container">
+    <img
+        src="images/analyzing-ui.png"
+        alt="Analyzing UI"
+        class="analysis-image"
+    >
+</div>
 
       <h1 class="welcome-title">
         Welcome to Argus<br>
@@ -631,7 +634,7 @@
       </h1>
 
       <button id="startBtn" class="start-btn">
-        Start Analysis 🚀
+        Start Analysis 
       </button>
 
       <p class="footer">
@@ -643,14 +646,14 @@
     <section id="dashboardPage" class="page">
       <div class="header">
         <div class="left">
-          <div class="logo">👁</div>
-          <div>
+          <div> 
             <h2>Argus</h2>
             <span id="monitorStatusText" class="status-active">● READY</span>
           </div>
         </div>
-        <button class="icon-btn" id="settingsBtn">⚙</button>
+        <img src="images/eye-icon.png" alt="View icon" class="eye-icon">
       </div>
+
 
       <button id="analyzeBtn" class="primary-btn">
         Analyze Selected Design
@@ -772,7 +775,9 @@
     <section id="reportPage" class="page">
       <div class="header">
         <div class="left">
-          <div class="logo">👁</div>
+          <div class="logo">
+  <img src="images/eye-icon.png" alt="Argus Logo">
+</div>
           <div>
             <h2>Argus</h2>
             <p>Generate Analysis Report</p>
