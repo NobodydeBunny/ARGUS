@@ -242,7 +242,7 @@ async function runAnalysis(reason) {
     isAnalyzing = true;
     sendStatus("Analyzing design changes...");
 
-    const response = await fetch("http://localhost:5000/api/analysis", {
+    const response = await fetch("http://localhost:3000/api/analysis", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -364,7 +364,7 @@ figma.ui.onmessage = async (msg) => {
       isGeneratingReport = true;
       sendStatus("Generating report...");
 
-      const response = await fetch("http://localhost:5000/api/reports/generate", {
+      const response = await fetch("http://localhost:3000/api/reports/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -411,7 +411,7 @@ figma.ui.onmessage = async (msg) => {
       return;
     }
 
-    figma.openExternal(`http://localhost:5000/api/reports/${msg.reportId}/export`);
+    figma.openExternal(`http://localhost:3000/api/reports/${msg.reportId}/export`);
 
     figma.ui.postMessage({
       type: "system-status",
@@ -430,7 +430,7 @@ figma.ui.onmessage = async (msg) => {
     }
 
     try {
-      await fetch(`http://localhost:5000/api/reports/${msg.reportId}/export/cancel`, {
+      await fetch(`http://localhost:3000/api/reports/${msg.reportId}/export/cancel`, {
         method: "PATCH"
       });
 
@@ -460,7 +460,7 @@ figma.ui.onmessage = async (msg) => {
 
     if (activeSessionId) {
       try {
-        await fetch(`http://localhost:5000/api/sessions/${activeSessionId}/terminate`, {
+        await fetch(`http://localhost:3000/api/sessions/${activeSessionId}/terminate`, {
           method: "PATCH"
         });
       } catch (error) {
