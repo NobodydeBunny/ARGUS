@@ -1,5 +1,6 @@
 const { predictWithTrainedModel } = require("./trainedModelAdapter");
 
+// Display names for predicted issue labels
 const labelDisplayNames = {
   modal_without_exit: "Modal or Dialog Without Exit Option",
   spacing_inconsistency: "Spacing Pattern Inconsistency",
@@ -17,6 +18,7 @@ const labelDisplayNames = {
   no_issue: "No Issue"
 };
 
+// Map issue labels to usability principles
 const labelPrinciples = {
   modal_without_exit: "User Control and Freedom",
   spacing_inconsistency: "Consistency and Standards",
@@ -33,6 +35,7 @@ const labelPrinciples = {
   irreversible_without_confirmation: "Help Users Recognize, Diagnose and Recover from Errors"
 };
 
+// Determine fix category from issue label
 const getFixType = (label) => {
   if (label.includes("color") || label.includes("contrast") || label.includes("error")) {
     return "color";
@@ -59,11 +62,13 @@ const getFixType = (label) => {
 
 const classifyCandidate = (candidate) => {
   const prediction = predictWithTrainedModel(candidate);
-
+  
+  // Ignore candidates predicted as no issue
   if (prediction.issueLabel === "no_issue") {
     return null;
   }
 
+  // Build final classified issue
   return {
     nodeId: candidate.nodeId,
     nodeName: candidate.nodeName || "Unknown UI Element",

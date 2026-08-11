@@ -12,6 +12,7 @@ let currentReportId = null;
 analysisForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
+  // Collect design input values
   const designData = {
     designName: document.getElementById("designName").value,
     fileType: document.getElementById("fileType").value,
@@ -21,6 +22,7 @@ analysisForm.addEventListener("submit", async (event) => {
   };
 
   try {
+    // Send design data for analysis
     const response = await fetch(`${API_URL}/analysis`, {
       method: "POST",
       headers: {
@@ -34,12 +36,18 @@ analysisForm.addEventListener("submit", async (event) => {
     currentAnalysisId = data._id;
     currentReportId = null;
 
-    analysisResult.textContent = JSON.stringify(data, null, 2);
+    // Display analysis result
+    analysisResult.textContent =
+      JSON.stringify(data, null, 2);
+
+    // Reset report section
     reportResult.textContent = "No report yet.";
     exportLink.classList.add("hidden");
     generateReportBtn.disabled = false;
+
   } catch (error) {
-    analysisResult.textContent = "Failed to analyze design.";
+    analysisResult.textContent =
+      "Failed to analyze design.";
   }
 });
 
@@ -49,24 +57,36 @@ generateReportBtn.addEventListener("click", async () => {
   }
 
   try {
-    const response = await fetch(`${API_URL}/reports/generate`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        analysisId: currentAnalysisId
-      })
-    });
+    // Generate report from analysis
+    const response = await fetch(
+      `${API_URL}/reports/generate`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          analysisId: currentAnalysisId
+        })
+      }
+    );
 
     const data = await response.json();
 
     currentReportId = data._id;
 
-    reportResult.textContent = JSON.stringify(data, null, 2);
-    exportLink.href = `${API_URL}/reports/${currentReportId}/export`;
+    // Display report result
+    reportResult.textContent =
+      JSON.stringify(data, null, 2);
+
+    // Enable report export link
+    exportLink.href =
+      `${API_URL}/reports/${currentReportId}/export`;
+
     exportLink.classList.remove("hidden");
+
   } catch (error) {
-    reportResult.textContent = "Failed to generate report.";
+    reportResult.textContent =
+      "Failed to generate report.";
   }
 });

@@ -4,10 +4,12 @@ const UNDO_KEYWORDS = ["undo", "restore", "recover", "revert"];
 const CONFIRMATION_KEYWORDS = ["confirm", "are you sure", "yes", "no", "cancel"];
 const MODAL_KEYWORDS = ["modal", "dialog", "popup", "confirmation", "overlay"];
 
+// Normalize text for comparison
 const normalizeText = (value) => {
   return String(value || "").toLowerCase().trim();
 };
 
+// Check for matching keywords
 const includesAny = (value, keywords) => {
   const text = normalizeText(value);
   return keywords.some(keyword => text.includes(keyword));
@@ -25,15 +27,19 @@ const getChildren = (nodes, parentId) => {
   return nodes.filter(node => node.parentId === parentId);
 };
 
+// Find nodes matching action keywords
 const getActionNodes = (nodes, keywords) => {
   return nodes.filter(node => includesAny(getNodeLabel(node), keywords));
 };
 
+// Check whether a node looks like a modal
 const isModalLike = (node, allNodes) => {
   const label = getNodeLabel(node);
   const children = getChildren(allNodes, node.nodeId);
 
   const nameLooksLikeModal = includesAny(label, MODAL_KEYWORDS);
+  
+  // Check modal-like size and structure
   const structureLooksLikeModal =
     children.length >= 2 &&
     Number(node.width || 0) >= 220 &&
@@ -61,6 +67,7 @@ const detectMissingExitControls = (nodes) => {
       return;
     }
 
+    // Find Back, Cancel, or Close controls
     const exitControls = children.filter(child => includesAny(getNodeLabel(child), EXIT_KEYWORDS));
 
     if (exitControls.length === 0) {
@@ -93,6 +100,8 @@ const detectDestructiveActionsWithoutUndo = (nodes) => {
 
   destructiveNodes.forEach((node) => {
     const nodeParentId = node.parentId;
+
+    // Check sibling nodes for undo options
     const localSiblings = nodes.filter(item => item.parentId === nodeParentId);
     const localUndo = localSiblings.filter(item => includesAny(getNodeLabel(item), UNDO_KEYWORDS));
 
@@ -126,6 +135,7 @@ const detectIrreversibleActionsWithoutConfirmation = (nodes) => {
   const destructiveNodes = getActionNodes(nodes, DESTRUCTIVE_KEYWORDS);
   const frames = getFrames(nodes);
 
+  // Find possible confirmation dialogs
   const confirmationFrames = frames.filter(frame => {
     const frameLabel = getNodeLabel(frame);
     const children = getChildren(nodes, frame.nodeId);
@@ -133,6 +143,7 @@ const detectIrreversibleActionsWithoutConfirmation = (nodes) => {
       includesAny(frameLabel, MODAL_KEYWORDS);
 
     const childLabels = children.map(child => getNodeLabel(child)).join(" ");
+    
     const hasConfirmAndCancel =
       includesAny(childLabels, ["confirm", "yes", "delete", "remove"]) &&
       includesAny(childLabels, ["cancel", "no", "back"]);
@@ -140,6 +151,7 @@ const detectIrreversibleActionsWithoutConfirmation = (nodes) => {
     return hasConfirmationName || hasConfirmAndCancel;
   });
 
+  // Match destructive action with confirmation frame
   destructiveNodes.forEach((node) => {
     const relatedConfirmation = confirmationFrames.find(frame => {
       const frameLabel = getNodeLabel(frame);
@@ -173,6 +185,7 @@ const detectIrreversibleActionsWithoutConfirmation = (nodes) => {
   return candidates;
 };
 
+// Run all error handling checks
 const analyzeErrorHandlingPatterns = (designData) => {
   const nodes = Array.isArray(designData.nodes) ? designData.nodes : [];
 

@@ -1,4 +1,6 @@
 const express = require("express");
+
+// Import report controller functions
 const {
   generateReport,
   getReports,

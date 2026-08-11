@@ -1,61 +1,94 @@
 const fs = require("fs");
 const path = require("path");
 
-const testDataPath = path.join(__dirname, "../dataset/test-metadata-samples.json");
-const outputPath = path.join(__dirname, "../dataset/evaluation-results.csv");
+// Define input and output file paths
+const testDataPath = path.join(
+  __dirname,
+  "../dataset/test-metadata-samples.json"
+);
 
-const testData = JSON.parse(fs.readFileSync(testDataPath, "utf8"));
+const outputPath = path.join(
+  __dirname,
+  "../dataset/evaluation-results.csv"
+);
+
+// Load test dataset
+const testData = JSON.parse(
+  fs.readFileSync(testDataPath, "utf8")
+);
 
 const predictLabelsFromFeatures = (features) => {
   const predictedLabels = [];
 
+  // Detect missing modal exit controls
   if (features.isModalLike && !features.hasExitControl) {
     predictedLabels.push("modal_without_exit");
     predictedLabels.push("missing_exit_control");
   }
 
+  // Detect spacing inconsistency
   if (features.spacingDeviation >= 0.65) {
     predictedLabels.push("spacing_inconsistency");
   }
 
+  // Detect button shape inconsistency
   if (features.cornerRadiusDeviation >= 0.65) {
     predictedLabels.push("button_shape_inconsistency");
   }
 
+  // Detect alignment inconsistency
   if (features.alignmentDeviation >= 0.65) {
     predictedLabels.push("alignment_inconsistency");
   }
 
+  // Detect overloaded screen
   if (features.controlDensity >= 0.75) {
     predictedLabels.push("overloaded_screen");
   }
 
+  // Detect color inconsistency
   if (features.colorPatternDeviation >= 0.65) {
     predictedLabels.push("color_inconsistency");
   }
 
+  // Detect same color for different actions
   if (features.sameColorDifferentActions) {
-  predictedLabels.push("same_color_different_actions");
+    predictedLabels.push("same_color_different_actions");
   }
 
-  if (features.errorContrastRatio !== null && features.errorContrastRatio < 4.5) {
+  // Detect weak error visibility
+  if (
+    features.errorContrastRatio !== null &&
+    features.errorContrastRatio < 4.5
+  ) {
     predictedLabels.push("weak_error_visibility");
     predictedLabels.push("low_contrast_error_message");
     predictedLabels.push("poor_error_state_styling");
   }
 
-  if (features.hasDestructiveAction && !features.hasUndoOption) {
+  // Detect destructive action without undo
+  if (
+    features.hasDestructiveAction &&
+    !features.hasUndoOption
+  ) {
     predictedLabels.push("destructive_without_undo");
   }
 
-  if (features.hasDestructiveAction && !features.hasConfirmationDialog) {
+  // Detect destructive action without confirmation
+  if (
+    features.hasDestructiveAction &&
+    !features.hasConfirmationDialog
+  ) {
     predictedLabels.push("irreversible_without_confirmation");
   }
 
   return predictedLabels;
 };
 
-const calculateMetrics = (expectedLabels, predictedLabels) => {
+const calculateMetrics = (
+  expectedLabels,
+  predictedLabels
+) => {
   const expected = new Set(expectedLabels);
   const predicted = new Set(predictedLabels);
 
@@ -63,6 +96,7 @@ const calculateMetrics = (expectedLabels, predictedLabels) => {
   let falsePositive = 0;
   let falseNegative = 0;
 
+  // Count correct and incorrect predictions
   predicted.forEach((label) => {
     if (expected.has(label)) {
       truePositive += 1;
@@ -71,23 +105,30 @@ const calculateMetrics = (expectedLabels, predictedLabels) => {
     }
   });
 
+  // Count missed expected labels
   expected.forEach((label) => {
     if (!predicted.has(label)) {
       falseNegative += 1;
     }
   });
 
-  const precision = truePositive + falsePositive === 0
-    ? 1
-    : truePositive / (truePositive + falsePositive);
+  const precision =
+    truePositive + falsePositive === 0
+      ? 1
+      : truePositive /
+        (truePositive + falsePositive);
 
-  const recall = truePositive + falseNegative === 0
-    ? 1
-    : truePositive / (truePositive + falseNegative);
+  const recall =
+    truePositive + falseNegative === 0
+      ? 1
+      : truePositive /
+        (truePositive + falseNegative);
 
-  const f1Score = precision + recall === 0
-    ? 0
-    : (2 * precision * recall) / (precision + recall);
+  const f1Score =
+    precision + recall === 0
+      ? 0
+      : (2 * precision * recall) /
+        (precision + recall);
 
   return {
     truePositive,
@@ -99,22 +140,39 @@ const calculateMetrics = (expectedLabels, predictedLabels) => {
   };
 };
 
+// Escape values for CSV format
 const escapeCsv = (value) => {
-  const text = Array.isArray(value) ? value.join("|") : String(value ?? "");
+  const text = Array.isArray(value)
+    ? value.join("|")
+    : String(value ?? "");
+
   return `"${text.replace(/"/g, "\"\"")}"`;
 };
 
+// Create CSV header
 const rows = [
   "sampleId,expectedLabels,predictedLabels,truePositive,falsePositive,falseNegative,precision,recall,f1Score,analysisTimeMs,notes"
 ];
 
+// Evaluate each test sample
 testData.samples.forEach((sample) => {
   const startTime = Date.now();
-  const predictedLabels = predictLabelsFromFeatures(sample.metadataFeatures);
-  const analysisTimeMs = Date.now() - startTime;
 
-  const metrics = calculateMetrics(sample.expectedLabels, predictedLabels);
+  // Generate predicted labels
+  const predictedLabels =
+    predictLabelsFromFeatures(
+      sample.metadataFeatures
+    );
 
+  const analysisTimeMs =
+    Date.now() - startTime;
+
+  const metrics = calculateMetrics(
+    sample.expectedLabels,
+    predictedLabels
+  );
+
+  // Add result row to CSV
   rows.push([
     escapeCsv(sample.sampleId),
     escapeCsv(sample.expectedLabels),
@@ -130,7 +188,11 @@ testData.samples.forEach((sample) => {
   ].join(","));
 });
 
-fs.writeFileSync(outputPath, rows.join("\n"));
+// Save evaluation results
+fs.writeFileSync(
+  outputPath,
+  rows.join("\n")
+);
 
 console.log("Evaluation completed.");
 console.log(`Results saved to: ${outputPath}`);

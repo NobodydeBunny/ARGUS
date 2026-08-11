@@ -2,10 +2,12 @@ const EXIT_KEYWORDS = ["close", "cancel", "back", "dismiss", "return"];
 const MODAL_KEYWORDS = ["modal", "dialog", "popup", "overlay"];
 const BUTTON_HINTS = ["button", "login", "register", "submit", "save", "delete", "remove", "reset", "confirm", "continue", "next"];
 
+// Normalize text for comparison
 const normalizeText = (value) => {
   return String(value || "").toLowerCase().trim();
 };
 
+// Check for matching keywords
 const includesAny = (value, keywords) => {
   const text = normalizeText(value);
   return keywords.some(keyword => text.includes(keyword));
@@ -23,6 +25,7 @@ const getFrames = (nodes) => {
   return nodes.filter(node => ["FRAME", "GROUP", "COMPONENT", "INSTANCE"].includes(node.type));
 };
 
+// Check whether node looks like a button
 const isButtonLike = (node) => {
   const label = getNodeLabel(node);
   const hasButtonName = includesAny(label, BUTTON_HINTS);
@@ -31,6 +34,7 @@ const isButtonLike = (node) => {
   return hasButtonName || hasButtonShape;
 };
 
+// Calculate deviation from common pattern
 const calculatePatternDeviation = (value, values) => {
   const validValues = values
     .map(Number)
@@ -51,6 +55,7 @@ const calculatePatternDeviation = (value, values) => {
   return Math.abs(Number(value) - average) / standardDeviation;
 };
 
+// Convert deviation to evidence score
 const scoreFromDeviation = (deviation) => {
   if (deviation >= 3) return 0.95;
   if (deviation >= 2) return 0.8;
@@ -59,6 +64,7 @@ const scoreFromDeviation = (deviation) => {
   return 0;
 };
 
+// Detect modals without exit controls
 const detectModalExitCandidates = (nodes) => {
   const candidates = [];
   const frames = getFrames(nodes);
@@ -67,6 +73,7 @@ const detectModalExitCandidates = (nodes) => {
     const frameLabel = getNodeLabel(frame);
     const children = getChildren(nodes, frame.nodeId);
 
+    // Check modal characteristics
     const nameLooksModal = includesAny(frameLabel, MODAL_KEYWORDS);
     const overlayLike = children.length >= 2 && Number(frame.width) >= 220 && Number(frame.height) >= 160;
 
@@ -75,6 +82,8 @@ const detectModalExitCandidates = (nodes) => {
     }
 
     const exitControls = children.filter(child => includesAny(getNodeLabel(child), EXIT_KEYWORDS));
+    
+    // Score missing exit control
     const evidenceScore = exitControls.length === 0
       ? nameLooksModal ? 0.9 : 0.68
       : 0;
@@ -102,6 +111,7 @@ const detectModalExitCandidates = (nodes) => {
   return candidates;
 };
 
+// Detect inconsistent spacing
 const detectSpacingPatternCandidates = (nodes) => {
   const candidates = [];
   const grouped = {};
@@ -110,7 +120,8 @@ const detectSpacingPatternCandidates = (nodes) => {
     if (node.itemSpacing == null) {
       return;
     }
-
+    
+    // Group similar components
     const key = node.mainComponentId || node.componentId || normalizeText(node.name);
 
     if (!key) {
@@ -158,6 +169,7 @@ const detectSpacingPatternCandidates = (nodes) => {
   return candidates;
 };
 
+// Detect inconsistent button shapes
 const detectButtonShapeCandidates = (nodes) => {
   const candidates = [];
   const buttons = nodes.filter(isButtonLike);
@@ -165,6 +177,8 @@ const detectButtonShapeCandidates = (nodes) => {
 
   buttons.forEach((button) => {
     const label = normalizeText(button.text || button.name || "button");
+    
+    // Group similar buttons
     const actionKey = button.mainComponentId || button.componentId || label;
 
     if (!groups[actionKey]) {
@@ -184,6 +198,7 @@ const detectButtonShapeCandidates = (nodes) => {
     const widthValues = group.map(button => button.width || 0);
 
     group.forEach((button) => {
+      // Compare button dimensions
       const radiusScore = scoreFromDeviation(calculatePatternDeviation(button.cornerRadius || 0, radiusValues));
       const heightScore = scoreFromDeviation(calculatePatternDeviation(button.height || 0, heightValues));
       const widthScore = scoreFromDeviation(calculatePatternDeviation(button.width || 0, widthValues));
@@ -215,14 +230,18 @@ const detectButtonShapeCandidates = (nodes) => {
   return candidates;
 };
 
+// Detect inconsistent alignment
 const detectAlignmentCandidates = (nodes) => {
   const candidates = [];
+  
+  // Use visible positioned nodes
   const visibleNodes = nodes.filter(node => node.visible !== false && Number.isFinite(Number(node.x)));
 
   if (visibleNodes.length < 4) {
     return candidates;
   }
-
+  
+  // Compare X and Y positions
   const xValues = visibleNodes.map(node => Number(node.x));
   const yValues = visibleNodes.map(node => Number(node.y || 0));
 
@@ -254,6 +273,7 @@ const detectAlignmentCandidates = (nodes) => {
   return candidates;
 };
 
+// Detect overloaded screens
 const detectDensityCandidates = (nodes) => {
   const candidates = [];
   const frames = getFrames(nodes);
@@ -264,11 +284,15 @@ const detectDensityCandidates = (nodes) => {
     if (children.length < 8) {
       return;
     }
-
+    
+    // Calculate screen area
     const frameArea = Number(frame.width || 0) * Number(frame.height || 0);
+    // Count interactive and text controls
     const controls = children.filter(child => isButtonLike(child) || child.type === "TEXT");
+    // Calculate control density
     const density = frameArea > 0 ? controls.length / (frameArea / 10000) : 0;
-
+    
+    // Find sibling frames & densities
     const siblingFrames = frames.filter(item => item.parentId === frame.parentId && item.nodeId !== frame.nodeId);
     const siblingDensities = siblingFrames.map((item) => {
       const siblingChildren = getChildren(nodes, item.nodeId);
@@ -277,6 +301,7 @@ const detectDensityCandidates = (nodes) => {
       return siblingArea > 0 ? siblingControls.length / (siblingArea / 10000) : 0;
     });
 
+    // Compare density with similar screens
     const comparisonValues = siblingDensities.length > 0 ? siblingDensities.concat(density) : [density, 0.4];
     const evidenceScore = scoreFromDeviation(calculatePatternDeviation(density, comparisonValues));
 
@@ -303,6 +328,7 @@ const detectDensityCandidates = (nodes) => {
   return candidates;
 };
 
+// Run all layout analysis rules
 const analyzeLayoutPatterns = (designData) => {
   const nodes = Array.isArray(designData.nodes) ? designData.nodes : [];
 

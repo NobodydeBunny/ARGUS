@@ -22,6 +22,7 @@ const ERROR_KEYWORDS = [
   "try again"
 ];
 
+// Normalize text for comparison
 const normalizeText = (value) => {
   return String(value || "").toLowerCase().trim();
 };
@@ -30,11 +31,13 @@ const getNodeLabel = (node) => {
   return normalizeText(`${node.name || ""} ${node.text || ""}`);
 };
 
+// Check for matching keywords
 const includesAny = (value, keywords) => {
   const text = normalizeText(value);
   return keywords.some(keyword => text.includes(keyword));
 };
 
+// Convert RGB to string
 const rgbToKey = (color) => {
   if (!color) {
     return null;
@@ -47,6 +50,7 @@ const rgbToKey = (color) => {
   return `${r},${g},${b}`;
 };
 
+// Get node's main fill color
 const getPrimaryFillColor = (node) => {
   if (node.fillColor) {
     return node.fillColor;
@@ -72,15 +76,18 @@ const getActionType = (node) => {
   return ACTION_KEYWORDS.find(keyword => label.includes(keyword)) || null;
 };
 
+// Check if node is an action
 const isActionNode = (node) => {
   return Boolean(getActionType(node));
 };
 
+// Check if node is error-related
 const isErrorNode = (node) => {
   const label = getNodeLabel(node);
   return includesAny(label, ERROR_KEYWORDS);
 };
 
+// Check the similarity b/w two colors
 const colorDistance = (firstColor, secondColor) => {
   if (!firstColor || !secondColor) {
     return 0;
@@ -93,6 +100,7 @@ const colorDistance = (firstColor, secondColor) => {
   return Math.sqrt((rDiff * rDiff) + (gDiff * gDiff) + (bDiff * bDiff));
 };
 
+// Relative Luminance
 const luminance = (color) => {
   if (!color) {
     return 0;
@@ -108,6 +116,7 @@ const luminance = (color) => {
   return 0.2126 * values[0] + 0.7152 * values[1] + 0.0722 * values[2];
 };
 
+// Contrast ratio b/w foreground & background
 const contrastRatio = (foreground, background) => {
   if (!foreground || !background) {
     return null;
@@ -121,6 +130,7 @@ const contrastRatio = (foreground, background) => {
   return Number(((lighter + 0.05) / (darker + 0.05)).toFixed(2));
 };
 
+// Identify the Background
 const findNearestBackground = (node, nodes) => {
   const parent = nodes.find(item => item.nodeId === node.parentId);
 
@@ -182,6 +192,7 @@ const detectSameActionDifferentColors = (nodes) => {
         .map(other => colorDistance(item.color, other.color));
 
       const maxDistance = Math.max(...distances);
+      // Normalize Color Differences
       const evidenceScore = Math.min(maxDistance / 180, 1);
 
       if (evidenceScore >= 0.5) {
@@ -228,6 +239,7 @@ const detectDifferentActionsSameColor = (nodes) => {
         return false;
       }
 
+      // Treat close RGB values as similar
       return colorDistance(item.color, other.color) <= 18;
     });
 
@@ -264,16 +276,19 @@ const detectWeakErrorVisibility = (nodes) => {
 
     let evidenceScore = 0;
 
+    //Check Low Contrast
     if (ratio != null && ratio < 4.5) {
       evidenceScore = Math.max(evidenceScore, 0.85);
     }
 
+    // Find Normal Text Colors
     const normalTextNodes = nodes.filter(item => {
       return item.type === "TEXT" &&
         !isErrorNode(item) &&
         getPrimaryFillColor(item);
     });
 
+    // Check similarity to normal text
     const similarNormalText = normalTextNodes.filter(item => {
       return colorDistance(getPrimaryFillColor(item), errorColor) < 35;
     });
@@ -283,6 +298,8 @@ const detectWeakErrorVisibility = (nodes) => {
     }
 
     const hasErrorStyleName = includesAny(getNodeLabel(node), ERROR_KEYWORDS);
+    
+    // Check for distinctive error color
     const hasDistinctVisualStyle = errorColor && colorDistance(errorColor, { r: 220, g: 38, b: 38 }) < 90;
 
     if (hasErrorStyleName && !hasDistinctVisualStyle) {
@@ -313,6 +330,7 @@ const detectWeakErrorVisibility = (nodes) => {
   return candidates;
 };
 
+// Run all color analysis rules
 const analyzeColorPatterns = (designData) => {
   const nodes = Array.isArray(designData.nodes) ? designData.nodes : [];
 

@@ -1,4 +1,6 @@
 const express = require("express");
+
+// Import suggestion controller functions
 const {
   getSuggestions
 } = require("../controllers/suggestionController");

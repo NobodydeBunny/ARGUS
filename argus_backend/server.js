@@ -1,13 +1,17 @@
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+
 require("dotenv").config();
 
 const app = express();
 
 app.use(cors());
+
 app.use(express.json());
+
 app.set("json spaces", 2);
+
 app.use(express.static("public"));
 
 mongoose
@@ -19,25 +23,28 @@ mongoose
     console.log("MongoDB connection error:", error.message);
   });
 
+// Root endpoint
 app.get("/", (req, res) => {
   res.send("Argus Backend Running");
 });
 
 const PORT = process.env.PORT || 5000;
 
+// Register API routes
 app.use("/api/analysis", require("./routes/analysisRoutes"));
 app.use("/api/reports", require("./routes/reportRoutes"));
 app.use("/api/sessions", require("./routes/sessionRoutes"));
 app.use("/api/suggestions", require("./routes/suggestionRoutes"));
 
+// Backend health check
 app.get("/health", (req, res) => {
-    res.status(200).json({
-        status: "online",
-        database: "connected",
-        service: "Argus Backend",
-        version: "1.0.0",
-        timestamp: new Date().toISOString()
-    });
+  res.status(200).json({
+    status: "online",
+    database: "connected",
+    service: "Argus Backend",
+    version: "1.0.0",
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.listen(PORT, () => {

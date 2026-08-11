@@ -20,6 +20,7 @@ const createIssueKey = (issue) => {
   return `${nodeReference}-${issue.type}`;
 };
 
+// Remove records created during failed analysis
 const rollbackCreatedRecords = async ({
   createdAnalysisId,
   createdIssueIds,
@@ -27,22 +28,23 @@ const rollbackCreatedRecords = async ({
   createdNewSession,
   sessionId
 }) => {
+  // Delete created suggestions
   if (createdSuggestionIds.length > 0) {
     await Suggestion.deleteMany({
       _id: { $in: createdSuggestionIds }
     });
   }
-
+  // Delete created issues
   if (createdIssueIds.length > 0) {
     await DetectedIssue.deleteMany({
       _id: { $in: createdIssueIds }
     });
   }
-
+  // Delete created analysis
   if (createdAnalysisId) {
     await Analysis.findByIdAndDelete(createdAnalysisId);
   }
-
+  // Delete newly created session
   if (createdNewSession && sessionId) {
     await AnalysisSession.findByIdAndDelete(sessionId);
   }
@@ -58,12 +60,15 @@ const createAnalysis = async (req, res) => {
   try {
     const startedAt = new Date();
     const nodes = req.body.nodes || [];
+    // Analyze submitted design
     const issues = analyzeDesign(req.body);
 
+    // Find existing session
     if (req.body.sessionId) {
       session = await AnalysisSession.findById(req.body.sessionId);
     }
 
+    // Create new session if needed
     if (!session) {
       session = await AnalysisSession.create({
         modelName: "Random Forest UI Issue Classifier",
@@ -82,6 +87,7 @@ const createAnalysis = async (req, res) => {
       createdNewSession = true;
     }
 
+    // Create analysis record
     const analysis = await Analysis.create({
       modelName: "Random Forest UI Issue Classifier",
       modelVersion: "1.0",
@@ -106,6 +112,7 @@ const createAnalysis = async (req, res) => {
       status: "open"
     });
 
+    // Mark missing issues as resolved
     for (const oldIssue of openIssues) {
       if (!currentIssueKeys.includes(oldIssue.issueKey)) {
         oldIssue.status = "resolved";
@@ -116,15 +123,18 @@ const createAnalysis = async (req, res) => {
 
     const issueSnapshots = [];
 
+    // Process each detected issue
     for (const issue of issues) {
       const issueKey = createIssueKey(issue);
 
+      // Check if issue already exists
       let detectedIssue = await DetectedIssue.findOne({
         sessionId: session._id,
         issueKey
       });
 
       if (detectedIssue) {
+        // Update existing issue
         detectedIssue.analysisId = analysis._id;
         detectedIssue.lastDetectedAt = new Date();
         detectedIssue.occurrenceCount += 1;
@@ -153,6 +163,7 @@ const createAnalysis = async (req, res) => {
         createdIssueIds.push(detectedIssue._id);
       }
 
+      // Find existing suggestion
       let suggestion = await Suggestion.findOne({
         sessionId: session._id,
         issueId: detectedIssue._id
@@ -172,6 +183,7 @@ const createAnalysis = async (req, res) => {
         createdSuggestionIds.push(suggestion._id);
       }
 
+      // Store issue snapshot
       issueSnapshots.push({
         issueId: detectedIssue._id.toString(),
         suggestionId: suggestion._id.toString(),
@@ -187,6 +199,7 @@ const createAnalysis = async (req, res) => {
       });
     }
 
+    // Complete analysis record
     analysis.issues = issueSnapshots;
     analysis.totalIssues = issueSnapshots.length;
     analysis.status = "completed";
@@ -201,6 +214,7 @@ const createAnalysis = async (req, res) => {
       sessionId: session._id
     });
 
+    // Update session summary
     session.totalIssues = allSessionIssues.length;
     session.totalSuggestions = allSessionSuggestions.length;
     session.completedAt = new Date();
@@ -221,14 +235,16 @@ const createAnalysis = async (req, res) => {
     } catch (rollbackError) {
       console.log("Rollback failed:", rollbackError.message);
     }
-
+    
+    // Mark existing session as failed
     if (session && !createdNewSession) {
       session.status = "failed";
       session.errorMessage = error.message;
       session.completedAt = new Date();
       await session.save();
     }
-
+    
+    // Return server error
     res.status(500).json({
       message: "Failed to create analysis",
       error: error.message

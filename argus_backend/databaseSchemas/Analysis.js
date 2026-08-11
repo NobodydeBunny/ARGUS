@@ -31,39 +31,47 @@ const issueSnapshotSchema = new mongoose.Schema(
 
 const analysisSchema = new mongoose.Schema(
   {
+    // Link to analysis session
     sessionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "AnalysisSession"
     },
+
+    // Design information
     designName: { type: String, required: true },
     fileType: { type: String, required: true },
     scanMode: { type: String, default: "manual" },
+
+    // ML model information
     modelName: {
-  type: String,
-  default: "Random Forest UI Issue Classifier"
-},
-modelVersion: {
-  type: String,
-  default: "1.0"
-},
-analysisMethod: {
-  type: String,
-  default: "trained_metadata_model"
-},
+      type: String,
+      default: "Random Forest UI Issue Classifier"
+    },
+    modelVersion: {
+      type: String,
+      default: "1.0"
+    },
+    analysisMethod: {
+      type: String,
+      default: "trained_metadata_model"
+    },
 
-
-
+    // Analyzed information
     nodeCount: { type: Number, default: 0 },
     fontSize: Number,
     contrastRatio: Number,
     spacing: Number,
     nodes: [nodeSchema],
+
     totalIssues: { type: Number, default: 0 },
     issues: [issueSnapshotSchema],
+
     status: { type: String, default: "completed" },
     startedAt: Date,
     completedAt: Date
   },
+
+  // Automatically add createdAt and updatedAt
   { timestamps: true }
 );
 

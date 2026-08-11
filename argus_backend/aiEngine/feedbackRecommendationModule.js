@@ -63,9 +63,11 @@ const recommendationTemplates = {
 
 const applyRecommendations = (issues) => {
   return issues.map((issue) => {
+    // Get matching recommendation template
     const template = recommendationTemplates[issue.recommendationCategory] ||
       recommendationTemplates.review_ui_pattern;
 
+    // Add recommendation details to issue
     return {
       ...issue,
       recommendation: template.recommendation,

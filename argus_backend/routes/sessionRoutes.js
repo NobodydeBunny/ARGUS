@@ -1,4 +1,6 @@
 const express = require("express");
+
+// Import session controller functions
 const {
   getSessions,
   getSessionById,

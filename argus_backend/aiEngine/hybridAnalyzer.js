@@ -10,6 +10,7 @@ const removeDuplicateIssues = (issues) => {
   issues.forEach((issue) => {
     const key = `${issue.nodeId || issue.nodeName}-${issue.type}`;
 
+    // Add issue if not already stored
     if (!uniqueIssues.has(key)) {
       uniqueIssues.set(key, issue);
       return;
@@ -17,6 +18,7 @@ const removeDuplicateIssues = (issues) => {
 
     const existingIssue = uniqueIssues.get(key);
 
+    // Keep the issue with higher confidence
     if (issue.confidenceScore > existingIssue.confidenceScore) {
       uniqueIssues.set(key, issue);
     }
@@ -42,11 +44,13 @@ const formatForDatabase = (issue) => {
   };
 };
 
+// Run complete hybrid UI analysis
 const analyzeDesign = (designData) => {
   const layoutCandidates = analyzeLayoutPatterns(designData);
   const colorCandidates = analyzeColorPatterns(designData);
   const errorHandlingCandidates = analyzeErrorHandlingPatterns(designData);
 
+  // Combine all detected candidates
   const allCandidates = [
     ...layoutCandidates,
     ...colorCandidates,
@@ -54,9 +58,12 @@ const analyzeDesign = (designData) => {
   ];
 
   const classifiedIssues = classifyCandidates(allCandidates);
+  
   const issuesWithRecommendations = applyRecommendations(classifiedIssues);
+  
   const uniqueIssues = removeDuplicateIssues(issuesWithRecommendations);
-
+  
+  // Prepare final results for database
   return uniqueIssues.map(formatForDatabase);
 };
 
