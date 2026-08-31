@@ -12,11 +12,11 @@ const analysisSessionSchema = new mongoose.Schema(
 },
 modelVersion: {
   type: String,
-  default: "1.0"
+  default: "2.0"
 },
 analysisMethod: {
   type: String,
-  default: "trained_metadata_model"
+  default: "trained_metadata_model_with_dynamic_feedback"
 },
     scanMode: { type: String, default: "manual" },
     nodeCount: { type: Number, default: 0 },
