@@ -1,9 +1,9 @@
 figma.showUI(__html__, {
-  width: 340,
+  width: 375,
   height: 700
 });
 
-const MAX_ANALYSIS_NODES = 80;
+const MAX_ANALYSIS_NODES = 1000;
 
 let realtimeScanEnabled = false;
 let scanTimer = null;
