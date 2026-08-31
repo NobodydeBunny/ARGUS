@@ -4,20 +4,31 @@ const DetectedIssue = require("../databaseSchemas/DetectedIssue");
 const Suggestion = require("../databaseSchemas/Suggestion");
 const analyzeDesign = require("../aiEngine/hybridAnalyzer");
 
-const getFixType = (issueType) => {
-  const type = issueType.toLowerCase();
+const MODEL_NAME = "Random Forest UI Issue Classifier";
+const MODEL_VERSION = "2.0";
+const ANALYSIS_METHOD = "trained_metadata_model_with_dynamic_feedback";
+const FEEDBACK_GENERATOR = "Argus Dynamic AI Feedback Generator v1.0";
+
+const getFixType = (issue) => {
+  if (issue.fixType) return issue.fixType;
+
+  const type = String(issue.type || issue.issueLabel || "").toLowerCase();
 
   if (type.includes("font")) return "typography";
-  if (type.includes("contrast")) return "color";
+  if (type.includes("contrast") || type.includes("color")) return "color";
   if (type.includes("spacing")) return "spacing";
-  if (type.includes("layout")) return "layout";
+  if (type.includes("align") || type.includes("layout") || type.includes("overloaded")) return "layout";
+  if (type.includes("exit") || type.includes("back") || type.includes("close")) return "navigation_control";
+  if (type.includes("undo")) return "error_recovery";
+  if (type.includes("confirmation")) return "confirmation_flow";
 
   return "general";
 };
 
 const createIssueKey = (issue) => {
   const nodeReference = issue.nodeId || issue.nodeName || "unknown-node";
-  return `${nodeReference}-${issue.type}`;
+  const label = issue.issueLabel || issue.type || "unknown-issue";
+  return `${nodeReference}-${label}`;
 };
 
 const rollbackCreatedRecords = async ({
@@ -28,15 +39,11 @@ const rollbackCreatedRecords = async ({
   sessionId
 }) => {
   if (createdSuggestionIds.length > 0) {
-    await Suggestion.deleteMany({
-      _id: { $in: createdSuggestionIds }
-    });
+    await Suggestion.deleteMany({ _id: { $in: createdSuggestionIds } });
   }
 
   if (createdIssueIds.length > 0) {
-    await DetectedIssue.deleteMany({
-      _id: { $in: createdIssueIds }
-    });
+    await DetectedIssue.deleteMany({ _id: { $in: createdIssueIds } });
   }
 
   if (createdAnalysisId) {
@@ -48,6 +55,54 @@ const rollbackCreatedRecords = async ({
   }
 };
 
+const buildSuggestionPayload = ({ session, analysis, detectedIssue, issue }) => {
+  const detailedSuggestion = issue.detailedRecommendation || issue.detailedSuggestion || issue.recommendation;
+  const shortSuggestion = issue.shortSuggestion || issue.recommendation;
+
+  return {
+    sessionId: session._id,
+    issueId: detectedIssue._id,
+    analysisId: analysis._id,
+
+    
+    description: detailedSuggestion,
+
+    shortSuggestion,
+    detailedSuggestion,
+    explanation: issue.explanation,
+    evidenceSummary: issue.evidenceSummary,
+    priority: issue.suggestionPriority || issue.severity || "medium",
+    fixType: getFixType(issue),
+    generatedBy: issue.generatedBy || FEEDBACK_GENERATOR,
+    generatedAt: new Date()
+  };
+};
+
+const createIssueSnapshot = ({ detectedIssue, suggestion, issue }) => ({
+  issueId: detectedIssue._id.toString(),
+  suggestionId: suggestion._id.toString(),
+  nodeId: issue.nodeId,
+  nodeName: issue.nodeName,
+  nodeType: issue.nodeType,
+  type: issue.type,
+  issueLabel: issue.issueLabel,
+  severity: issue.severity,
+  principle: issue.principle,
+  message: issue.message,
+
+  recommendation: issue.recommendation,
+  shortSuggestion: issue.shortSuggestion,
+  detailedRecommendation: issue.detailedRecommendation || issue.detailedSuggestion || issue.recommendation,
+  explanation: issue.explanation,
+  evidenceSummary: issue.evidenceSummary,
+  confidenceScore: issue.confidenceScore,
+  fixType: getFixType(issue),
+  generatedBy: issue.generatedBy || FEEDBACK_GENERATOR,
+
+  detectedAt: detectedIssue.lastDetectedAt,
+  suggestionGeneratedAt: suggestion.generatedAt
+});
+
 const createAnalysis = async (req, res) => {
   let session = null;
   let createdNewSession = false;
@@ -58,6 +113,7 @@ const createAnalysis = async (req, res) => {
   try {
     const startedAt = new Date();
     const nodes = req.body.nodes || [];
+
     const issues = analyzeDesign(req.body);
 
     if (req.body.sessionId) {
@@ -66,9 +122,9 @@ const createAnalysis = async (req, res) => {
 
     if (!session) {
       session = await AnalysisSession.create({
-        modelName: "Random Forest UI Issue Classifier",
-        modelVersion: "1.0",
-        analysisMethod: "trained_metadata_model",
+        modelName: MODEL_NAME,
+        modelVersion: MODEL_VERSION,
+        analysisMethod: ANALYSIS_METHOD,
         designName: req.body.designName,
         designId: req.body.designId || "figma-current-page",
         figmaPageName: req.body.designName,
@@ -83,11 +139,11 @@ const createAnalysis = async (req, res) => {
     }
 
     const analysis = await Analysis.create({
-      modelName: "Random Forest UI Issue Classifier",
-      modelVersion: "1.0",
-      analysisMethod: "trained_metadata_model",
+      modelName: MODEL_NAME,
+      modelVersion: MODEL_VERSION,
+      analysisMethod: ANALYSIS_METHOD,
       sessionId: session._id,
-      designName: req.body.designName,
+      designName: req.body.designName || "Untitled Figma Design",
       fileType: req.body.fileType || "Figma",
       scanMode: req.body.scanMode || "manual",
       nodeCount: nodes.length,
@@ -106,6 +162,7 @@ const createAnalysis = async (req, res) => {
       status: "open"
     });
 
+    
     for (const oldIssue of openIssues) {
       if (!currentIssueKeys.includes(oldIssue.issueKey)) {
         oldIssue.status = "resolved";
@@ -126,6 +183,14 @@ const createAnalysis = async (req, res) => {
 
       if (detectedIssue) {
         detectedIssue.analysisId = analysis._id;
+        detectedIssue.nodeId = issue.nodeId;
+        detectedIssue.nodeName = issue.nodeName;
+        detectedIssue.nodeType = issue.nodeType;
+        detectedIssue.issueType = issue.type;
+        detectedIssue.description = issue.message;
+        detectedIssue.severity = issue.severity;
+        detectedIssue.principle = issue.principle;
+        detectedIssue.confidenceScore = issue.confidenceScore || detectedIssue.confidenceScore || 0.85;
         detectedIssue.lastDetectedAt = new Date();
         detectedIssue.occurrenceCount += 1;
         detectedIssue.status = "open";
@@ -158,33 +223,22 @@ const createAnalysis = async (req, res) => {
         issueId: detectedIssue._id
       });
 
-      if (!suggestion) {
-        suggestion = await Suggestion.create({
-          sessionId: session._id,
-          issueId: detectedIssue._id,
-          analysisId: analysis._id,
-          description: issue.recommendation,
-          priority: issue.severity,
-          fixType: getFixType(issue.type),
-          generatedAt: new Date()
-        });
+      const suggestionPayload = buildSuggestionPayload({
+        session,
+        analysis,
+        detectedIssue,
+        issue
+      });
 
+      if (suggestion) {
+        Object.assign(suggestion, suggestionPayload);
+        await suggestion.save();
+      } else {
+        suggestion = await Suggestion.create(suggestionPayload);
         createdSuggestionIds.push(suggestion._id);
       }
 
-      issueSnapshots.push({
-        issueId: detectedIssue._id.toString(),
-        suggestionId: suggestion._id.toString(),
-        nodeName: issue.nodeName,
-        nodeType: issue.nodeType,
-        type: issue.type,
-        severity: issue.severity,
-        principle: issue.principle,
-        message: issue.message,
-        recommendation: issue.recommendation,
-        detectedAt: detectedIssue.lastDetectedAt,
-        suggestionGeneratedAt: suggestion.generatedAt
-      });
+      issueSnapshots.push(createIssueSnapshot({ detectedIssue, suggestion, issue }));
     }
 
     analysis.issues = issueSnapshots;
@@ -193,14 +247,14 @@ const createAnalysis = async (req, res) => {
     analysis.completedAt = new Date();
     await analysis.save();
 
-    const allSessionIssues = await DetectedIssue.find({
-      sessionId: session._id
-    });
+    const allSessionIssues = await DetectedIssue.find({ sessionId: session._id });
+    const allSessionSuggestions = await Suggestion.find({ sessionId: session._id });
 
-    const allSessionSuggestions = await Suggestion.find({
-      sessionId: session._id
-    });
-
+    session.modelName = MODEL_NAME;
+    session.modelVersion = MODEL_VERSION;
+    session.analysisMethod = ANALYSIS_METHOD;
+    session.nodeCount = nodes.length;
+    session.scanMode = req.body.scanMode || "manual";
     session.totalIssues = allSessionIssues.length;
     session.totalSuggestions = allSessionSuggestions.length;
     session.completedAt = new Date();
@@ -253,9 +307,7 @@ const getAnalysisById = async (req, res) => {
     const analysis = await Analysis.findById(req.params.id);
 
     if (!analysis) {
-      return res.status(404).json({
-        message: "Analysis not found"
-      });
+      return res.status(404).json({ message: "Analysis not found" });
     }
 
     res.status(200).json(analysis);
@@ -272,14 +324,10 @@ const deleteAnalysisById = async (req, res) => {
     const analysis = await Analysis.findByIdAndDelete(req.params.id);
 
     if (!analysis) {
-      return res.status(404).json({
-        message: "Analysis not found"
-      });
+      return res.status(404).json({ message: "Analysis not found" });
     }
 
-    res.status(200).json({
-      message: "Analysis deleted successfully"
-    });
+    res.status(200).json({ message: "Analysis deleted successfully" });
   } catch (error) {
     res.status(500).json({
       message: "Failed to delete analysis",
