@@ -3,6 +3,8 @@ const mongoose = require("mongoose");
 const reportIssueSchema = new mongoose.Schema(
   {
     issueId: String,
+    issueKey: String,
+    nodeId: String,
     nodeName: String,
     nodeType: String,
     issueType: String,
@@ -11,7 +13,10 @@ const reportIssueSchema = new mongoose.Schema(
     principle: String,
     confidenceScore: Number,
     status: String,
-    detectedAt: Date
+    firstDetectedAt: Date,
+    lastDetectedAt: Date,
+    resolvedAt: Date,
+    occurrenceCount: Number
   },
   { _id: false }
 );
@@ -21,6 +26,10 @@ const reportSuggestionSchema = new mongoose.Schema(
     suggestionId: String,
     issueId: String,
     description: String,
+    shortSuggestion: String,
+    detailedSuggestion: String,
+    explanation: String,
+    evidenceSummary: String,
     priority: String,
     fixType: String,
     generatedBy: String,

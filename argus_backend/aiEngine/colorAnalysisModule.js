@@ -1,56 +1,30 @@
-const ACTION_KEYWORDS = [
-  "login",
-  "register",
-  "submit",
-  "save",
-  "continue",
-  "next",
-  "confirm",
-  "delete",
-  "remove",
-  "reset",
-  "cancel"
-];
+const {
+  getNodes,
+  getPrimaryFillColor,
+  findNearestBackground,
+  colorDistance,
+  exactColorKey,
+  colorKey,
+  contrastRatio,
+  getActionType,
+  isActionNode,
+  isErrorNode,
+  buildGlobalFeatures,
+  createCandidate,
+  normalizeText
+} = require("./featureExtractor");
 
-const ERROR_KEYWORDS = [
-  "error",
-  "invalid",
-  "wrong",
-  "required",
-  "failed",
-  "warning",
-  "try again"
-];
+const rgbToHex = (color) => {
+  if (!color) return null;
 
-// Normalize text for comparison
-const normalizeText = (value) => {
-  return String(value || "").toLowerCase().trim();
+  const channelToHex = (value) => {
+    const number = Math.max(0, Math.min(255, Math.round(Number(value || 0))));
+    return number.toString(16).padStart(2, "0");
+  };
+
+  return `#${channelToHex(color.r)}${channelToHex(color.g)}${channelToHex(color.b)}`.toUpperCase();
 };
 
-const getNodeLabel = (node) => {
-  return normalizeText(`${node.name || ""} ${node.text || ""}`);
-};
-
-// Check for matching keywords
-const includesAny = (value, keywords) => {
-  const text = normalizeText(value);
-  return keywords.some(keyword => text.includes(keyword));
-};
-
-// Convert RGB to string
-const rgbToKey = (color) => {
-  if (!color) {
-    return null;
-  }
-
-  const r = Math.round(Number(color.r || 0));
-  const g = Math.round(Number(color.g || 0));
-  const b = Math.round(Number(color.b || 0));
-
-  return `${r},${g},${b}`;
-};
-
-// Get node's main fill color
 const getPrimaryFillColor = (node) => {
   if (node.fillColor) {
     return node.fillColor;
@@ -76,18 +50,15 @@ const getActionType = (node) => {
   return ACTION_KEYWORDS.find(keyword => label.includes(keyword)) || null;
 };
 
-// Check if node is an action
 const isActionNode = (node) => {
   return Boolean(getActionType(node));
 };
 
-// Check if node is error-related
 const isErrorNode = (node) => {
   const label = getNodeLabel(node);
   return includesAny(label, ERROR_KEYWORDS);
 };
 
-// Check the similarity b/w two colors
 const colorDistance = (firstColor, secondColor) => {
   if (!firstColor || !secondColor) {
     return 0;
@@ -100,7 +71,6 @@ const colorDistance = (firstColor, secondColor) => {
   return Math.sqrt((rDiff * rDiff) + (gDiff * gDiff) + (bDiff * bDiff));
 };
 
-// Relative Luminance
 const luminance = (color) => {
   if (!color) {
     return 0;
@@ -116,7 +86,6 @@ const luminance = (color) => {
   return 0.2126 * values[0] + 0.7152 * values[1] + 0.0722 * values[2];
 };
 
-// Contrast ratio b/w foreground & background
 const contrastRatio = (foreground, background) => {
   if (!foreground || !background) {
     return null;
@@ -130,7 +99,6 @@ const contrastRatio = (foreground, background) => {
   return Number(((lighter + 0.05) / (darker + 0.05)).toFixed(2));
 };
 
-// Identify the Background
 const findNearestBackground = (node, nodes) => {
   const parent = nodes.find(item => item.nodeId === node.parentId);
 
@@ -160,31 +128,36 @@ const findNearestBackground = (node, nodes) => {
   return getPrimaryFillColor(possibleBackground) || { r: 255, g: 255, b: 255 };
 };
 
-const detectSameActionDifferentColors = (nodes) => {
+const detectSameActionDifferentColors = (nodes, globalFeatures) => {
   const candidates = [];
   const actionGroups = {};
 
   nodes.filter(isActionNode).forEach((node) => {
     const actionType = getActionType(node);
     const color = getPrimaryFillColor(node);
+    if (!actionType || !color) return;
 
-    if (!actionType || !color) {
-      return;
-    }
-
-    if (!actionGroups[actionType]) {
-      actionGroups[actionType] = [];
-    }
-
+    actionGroups[actionType] = actionGroups[actionType] || [];
     actionGroups[actionType].push({ node, color });
   });
 
   Object.keys(actionGroups).forEach((actionType) => {
     const group = actionGroups[actionType];
+    if (group.length < 2) return;
 
-    if (group.length < 2) {
-      return;
-    }
+    const colorBuckets = {};
+    group.forEach((item) => {
+      const key = colorKey(item.color, 32);
+      colorBuckets[key] = colorBuckets[key] || [];
+      colorBuckets[key].push(item);
+    });
+
+    const sortedGroups = Object.values(colorBuckets).sort((first, second) => second.length - first.length);
+    const referenceGroup = sortedGroups[0];
+    const referenceColor = averageColor(referenceGroup);
+
+    let outlier = null;
+    let maxDistance = 0;
 
     group.forEach((item) => {
       const distances = group
@@ -192,54 +165,55 @@ const detectSameActionDifferentColors = (nodes) => {
         .map(other => colorDistance(item.color, other.color));
 
       const maxDistance = Math.max(...distances);
-      // Normalize Color Differences
       const evidenceScore = Math.min(maxDistance / 180, 1);
 
-      if (evidenceScore >= 0.5) {
-        candidates.push({
-          type: "color_inconsistency",
-          displayType: "Inconsistent Color for Same Action",
-          category: "color_consistency",
-          nodeId: item.node.nodeId,
-          nodeName: item.node.name,
-          nodeType: item.node.type,
-          evidenceScore,
-          message: `The action "${actionType}" uses a color that differs from the same action elsewhere.`,
-          evidence: {
-            actionType,
-            color: item.color,
-            colorDistance: maxDistance
-          }
-        });
-      }
-    });
+    candidates.push(createCandidate({
+      moduleName: "color",
+      candidateType: "color_inconsistency",
+      displayType: "Same Action Uses Different Colors",
+      node: outlier.node,
+      evidenceScore,
+      principle: "Consistency and Standards",
+      message: `The action "${actionType}" uses inconsistent colors across similar UI elements.`,
+      evidence: createColorEvidence({
+        globalFeatures,
+        expectedColor: referenceColor,
+        actualColor: outlier.color,
+        actionType,
+        similarElementsCount: referenceGroup.length,
+        extra: {
+          sameActionColorDeviation: maxDistance,
+          actionColorCount: new Set(group.map(item => exactColorKey(item.color))).size,
+          reason: "same_action_different_colors"
+        }
+      })
+    }));
   });
 
   return candidates;
 };
 
-const detectDifferentActionsSameColor = (nodes) => {
+const detectDifferentActionsSameColor = (nodes, globalFeatures) => {
   const candidates = [];
+
   const actionNodes = nodes
     .filter(isActionNode)
-    .map(node => ({
-      node,
-      actionType: getActionType(node),
-      color: getPrimaryFillColor(node)
-    }))
-    .filter(item => item.color && item.actionType);
+    .map(node => ({ node, actionType: getActionType(node), color: getPrimaryFillColor(node) }))
+    .filter(item => item.actionType && item.color);
 
-  actionNodes.forEach((item) => {
-    const matchingDifferentActions = actionNodes.filter(other => {
-      if (other.node.nodeId === item.node.nodeId) {
-        return false;
+  if (actionNodes.length < 2) return candidates;
+
+  const conflictingPairs = [];
+
+  for (let i = 0; i < actionNodes.length; i += 1) {
+    for (let j = i + 1; j < actionNodes.length; j += 1) {
+      const first = actionNodes[i];
+      const second = actionNodes[j];
+
+      if (first.actionType !== second.actionType && colorDistance(first.color, second.color) <= 24) {
+        conflictingPairs.push([first, second]);
       }
 
-      if (other.actionType === item.actionType) {
-        return false;
-      }
-
-      // Treat close RGB values as similar
       return colorDistance(item.color, other.color) <= 18;
     });
 
@@ -260,14 +234,16 @@ const detectDifferentActionsSameColor = (nodes) => {
         }
       });
     }
-  });
+  }));
 
   return candidates;
 };
 
-const detectWeakErrorVisibility = (nodes) => {
+const detectWeakErrorVisibility = (nodes, globalFeatures) => {
   const candidates = [];
   const errorNodes = nodes.filter(isErrorNode);
+
+  if (errorNodes.length === 0) return candidates;
 
   errorNodes.forEach((node) => {
     const errorColor = getPrimaryFillColor(node);
@@ -276,19 +252,16 @@ const detectWeakErrorVisibility = (nodes) => {
 
     let evidenceScore = 0;
 
-    //Check Low Contrast
     if (ratio != null && ratio < 4.5) {
       evidenceScore = Math.max(evidenceScore, 0.85);
     }
 
-    // Find Normal Text Colors
     const normalTextNodes = nodes.filter(item => {
       return item.type === "TEXT" &&
         !isErrorNode(item) &&
         getPrimaryFillColor(item);
     });
 
-    // Check similarity to normal text
     const similarNormalText = normalTextNodes.filter(item => {
       return colorDistance(getPrimaryFillColor(item), errorColor) < 35;
     });
@@ -298,32 +271,46 @@ const detectWeakErrorVisibility = (nodes) => {
     }
 
     const hasErrorStyleName = includesAny(getNodeLabel(node), ERROR_KEYWORDS);
-    
-    // Check for distinctive error color
     const hasDistinctVisualStyle = errorColor && colorDistance(errorColor, { r: 220, g: 38, b: 38 }) < 90;
 
     if (hasErrorStyleName && !hasDistinctVisualStyle) {
       evidenceScore = Math.max(evidenceScore, 0.62);
     }
 
-    if (evidenceScore >= 0.5) {
-      candidates.push({
-        type: "weak_error_visibility",
-        displayType: "Weak Error Message Visibility",
-        category: "error_recovery",
-        nodeId: node.nodeId,
-        nodeName: node.name,
-        nodeType: node.type,
-        evidenceScore,
-        message: "An error-related element may not stand out clearly from the rest of the interface.",
+    if (ratio && ratio < 4.5) {
+      candidates.push(createCandidate({
+        moduleName: "color",
+        candidateType: "low_contrast_error_message",
+        displayType: "Low Contrast Error Message",
+        node,
+        evidenceScore: Math.max(0.6, lowContrastScore),
+        principle: "Accessibility and Visibility",
+        message: "An error or warning message has a contrast ratio below the recommended readability threshold.",
         evidence: {
-          contrastRatio: ratio,
-          errorColor,
-          backgroundColor,
-          similarNormalTextCount: similarNormalText.length,
-          hasDistinctVisualStyle
+          ...commonEvidence,
+          errorVisibilityScore: Math.max(0.6, lowContrastScore),
+          colorPatternDeviation: lowContrastScore,
+          reason: "low_contrast_error_message"
         }
-      });
+      }));
+    }
+
+    if (!hasVisualErrorStyle) {
+      candidates.push(createCandidate({
+        moduleName: "color",
+        candidateType: "poor_error_state_styling",
+        displayType: "Poor Error State Styling",
+        node,
+        evidenceScore: poorStyleScore,
+        principle: "Help Users Recognize, Diagnose and Recover from Errors",
+        message: "An error-related element does not use a clear error-state style such as an error color, warning icon, or validation wording.",
+        evidence: {
+          ...commonEvidence,
+          errorVisibilityScore: poorStyleScore,
+          colorPatternDeviation: poorStyleScore,
+          reason: "poor_error_state_styling"
+        }
+      }));
     }
   });
 
@@ -332,12 +319,14 @@ const detectWeakErrorVisibility = (nodes) => {
 
 // Run all color analysis rules
 const analyzeColorPatterns = (designData) => {
-  const nodes = Array.isArray(designData.nodes) ? designData.nodes : [];
+  const nodes = getNodes(designData);
+  const globalFeatures = buildGlobalFeatures(nodes, "color");
 
   return [
-    ...detectSameActionDifferentColors(nodes),
-    ...detectDifferentActionsSameColor(nodes),
-    ...detectWeakErrorVisibility(nodes)
+    ...detectDominantThemeColorOutlier(nodes, globalFeatures),
+    ...detectSameActionDifferentColors(nodes, globalFeatures),
+    ...detectDifferentActionsSameColor(nodes, globalFeatures),
+    ...detectWeakErrorVisibility(nodes, globalFeatures)
   ];
 };
 

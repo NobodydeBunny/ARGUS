@@ -1,56 +1,39 @@
-const { analyzeLayoutPatterns } = require("./layoutAnalysisModule");
+﻿const { analyzeLayoutPatterns } = require("./layoutAnalysisModule");
 const { analyzeColorPatterns } = require("./colorAnalysisModule");
 const { analyzeErrorHandlingPatterns } = require("./errorHandlingModule");
 const { classifyCandidates } = require("./uiIssueModel");
 const { applyRecommendations } = require("./feedbackRecommendationModule");
 
-const removeDuplicateIssues = (issues) => {
-  const uniqueIssues = new Map();
+const createDedupKey = (issue) => {
+  const nodeReference = issue.nodeId || issue.nodeName || "design";
+  return `${nodeReference}-${issue.issueLabel || issue.type}`;
+};
+
+const deduplicateIssues = (issues) => {
+  const issueMap = new Map();
 
   issues.forEach((issue) => {
-    const key = `${issue.nodeId || issue.nodeName}-${issue.type}`;
+    const key = createDedupKey(issue);
+    const existing = issueMap.get(key);
 
-    // Add issue if not already stored
-    if (!uniqueIssues.has(key)) {
-      uniqueIssues.set(key, issue);
-      return;
-    }
-
-    const existingIssue = uniqueIssues.get(key);
-
-    // Keep the issue with higher confidence
-    if (issue.confidenceScore > existingIssue.confidenceScore) {
-      uniqueIssues.set(key, issue);
+    if (!existing || Number(issue.confidenceScore || 0) > Number(existing.confidenceScore || 0)) {
+      issueMap.set(key, issue);
     }
   });
 
-  return Array.from(uniqueIssues.values());
+  return [...issueMap.values()].sort((first, second) => {
+    const severityWeight = { high: 3, medium: 2, low: 1 };
+    const severityDifference = (severityWeight[second.severity] || 0) - (severityWeight[first.severity] || 0);
+    if (severityDifference !== 0) return severityDifference;
+    return Number(second.confidenceScore || 0) - Number(first.confidenceScore || 0);
+  });
 };
 
-const formatForDatabase = (issue) => {
-  return {
-    nodeId: issue.nodeId,
-    nodeName: issue.nodeName,
-    nodeType: issue.nodeType,
-    type: issue.type,
-    severity: issue.severity,
-    principle: issue.principle,
-    message: issue.message,
-    recommendation: issue.recommendation,
-    confidenceScore: issue.confidenceScore,
-    fixType: issue.fixType,
-    evidence: issue.evidence,
-    explanation: issue.explanation
-  };
-};
-
-// Run complete hybrid UI analysis
 const analyzeDesign = (designData) => {
   const layoutCandidates = analyzeLayoutPatterns(designData);
   const colorCandidates = analyzeColorPatterns(designData);
   const errorHandlingCandidates = analyzeErrorHandlingPatterns(designData);
 
-  // Combine all detected candidates
   const allCandidates = [
     ...layoutCandidates,
     ...colorCandidates,
@@ -58,13 +41,9 @@ const analyzeDesign = (designData) => {
   ];
 
   const classifiedIssues = classifyCandidates(allCandidates);
-  
   const issuesWithRecommendations = applyRecommendations(classifiedIssues);
-  
-  const uniqueIssues = removeDuplicateIssues(issuesWithRecommendations);
-  
-  // Prepare final results for database
-  return uniqueIssues.map(formatForDatabase);
+
+  return deduplicateIssues(issuesWithRecommendations);
 };
 
 module.exports = analyzeDesign;

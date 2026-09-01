@@ -1,36 +1,36 @@
-const mongoose = require("mongoose");
+﻿const mongoose = require("mongoose");
 
 const suggestionSchema = new mongoose.Schema(
   {
-    // Reference to analysis session
     sessionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "AnalysisSession",
       required: true
     },
-
     issueId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "DetectedIssue",
       required: true
     },
-
     analysisId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Analysis"
     },
 
-    description: {
-      type: String,
-      required: true
-    },
+    // Backward compatible field used by reports and older UI code.
+    description: { type: String, required: true },
+
+    // New dynamic feedback fields generated from model result + design evidence.
+    shortSuggestion: String,
+    detailedSuggestion: String,
+    explanation: String,
+    evidenceSummary: String,
 
     priority: {
       type: String,
       enum: ["low", "medium", "high"],
       required: true
     },
-
     fixType: {
       type: String,
       enum: [
@@ -39,22 +39,28 @@ const suggestionSchema = new mongoose.Schema(
         "spacing",
         "layout",
         "accessibility",
-        "general"
+        "general",
+        "navigation_control",
+        "component_style",
+        "layout_alignment",
+        "layout_simplification",
+        "information_architecture",
+        "color_token",
+        "color_semantics",
+        "accessibility_color",
+        "error_state_design",
+        "error_recovery",
+        "confirmation_flow",
+        "manual_review"
       ],
       default: "general"
     },
-
     generatedBy: {
       type: String,
-      default: "Argus Rule Engine v1.0"
+      default: "Argus Dynamic AI Feedback Generator v1.0"
     },
-    generatedAt: {
-      type: Date,
-      default: Date.now
-    }
+    generatedAt: { type: Date, default: Date.now }
   },
-
-  // Automatically add createdAt and updatedAt
   { timestamps: true }
 );
 
