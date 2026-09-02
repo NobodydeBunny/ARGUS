@@ -39,7 +39,7 @@ const detectMissingBackCancelClose = (nodes, globalFeatures) => {
   const modalNodes = nodes.filter(node => isModalLike(node, nodes));
   const primaryFrame = getPrimaryFrame(nodes);
 
-  // If no modal exists, checking the selected main frame.
+  // If no modal exists, check the selected main frame.
   const targets = modalNodes.length > 0 ? modalNodes : (primaryFrame ? [primaryFrame] : []);
 
   targets.forEach((target) => {

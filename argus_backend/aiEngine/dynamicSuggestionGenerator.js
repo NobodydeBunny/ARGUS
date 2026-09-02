@@ -105,6 +105,7 @@ const createFeedback = ({ shortSuggestion, detailedSuggestion, explanation, evid
   detailedSuggestion,
   explanation,
   evidenceSummary,
+  // Existing plugin/database fields still read `recommendation`, so keep it populated.
   recommendation: detailedSuggestion || shortSuggestion
 });
 

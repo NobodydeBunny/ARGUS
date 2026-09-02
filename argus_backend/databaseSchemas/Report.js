@@ -1,89 +1,28 @@
-const mongoose = require("mongoose");
+const { DataTypes } = require("sequelize");
+const sequelize = require("../database");
 
-const reportIssueSchema = new mongoose.Schema(
-  {
-    issueId: String,
-    issueKey: String,
-    nodeId: String,
-    nodeName: String,
-    nodeType: String,
-    issueType: String,
-    description: String,
-    severity: String,
-    principle: String,
-    confidenceScore: Number,
-    status: String,
-    firstDetectedAt: Date,
-    lastDetectedAt: Date,
-    resolvedAt: Date,
-    occurrenceCount: Number
-  },
-  { _id: false }
-);
+const Report = sequelize.define("Report", {
+  _id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true, field: "id" },
+  sessionId: { type: DataTypes.UUID, allowNull: false, field: "session_id" },
+  analysisId: { type: DataTypes.UUID, field: "analysis_id" },
+  title: { type: DataTypes.STRING, allowNull: false },
+  summary: { type: DataTypes.TEXT, allowNull: false },
+  reportFormat: { type: DataTypes.STRING, defaultValue: "TXT", field: "report_format" },
+  filePath: { type: DataTypes.TEXT, field: "file_path" },
+  generatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW, field: "generated_at" },
+  totalIssues: { type: DataTypes.INTEGER, defaultValue: 0, field: "total_issues" },
+  highSeverityCount: { type: DataTypes.INTEGER, defaultValue: 0, field: "high_severity_count" },
+  mediumSeverityCount: { type: DataTypes.INTEGER, defaultValue: 0, field: "medium_severity_count" },
+  lowSeverityCount: { type: DataTypes.INTEGER, defaultValue: 0, field: "low_severity_count" },
+  issues: { type: DataTypes.JSONB, defaultValue: [] },
+  suggestions: { type: DataTypes.JSONB, defaultValue: [] },
+  recommendations: { type: DataTypes.JSONB, defaultValue: [] },
+  exportHistory: { type: DataTypes.JSONB, defaultValue: [], field: "export_history" },
+  status: { type: DataTypes.ENUM("generated", "exported", "export_failed", "export_cancelled"), defaultValue: "generated" }
+}, {
+  tableName: "reports",
+  timestamps: true,
+  underscored: true
+});
 
-const reportSuggestionSchema = new mongoose.Schema(
-  {
-    suggestionId: String,
-    issueId: String,
-    description: String,
-    shortSuggestion: String,
-    detailedSuggestion: String,
-    explanation: String,
-    evidenceSummary: String,
-    priority: String,
-    fixType: String,
-    generatedBy: String,
-    generatedAt: Date
-  },
-  { _id: false }
-);
-
-const exportHistorySchema = new mongoose.Schema(
-  {
-    exportedAt: { type: Date, default: Date.now },
-    status: {
-      type: String,
-      enum: ["success", "failed", "cancelled"],
-      required: true
-    },
-    fileName: String,
-    filePath: String,
-    message: String
-  },
-  { _id: false }
-);
-
-const reportSchema = new mongoose.Schema(
-  {
-    sessionId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "AnalysisSession",
-      required: true
-    },
-    analysisId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Analysis"
-    },
-    title: { type: String, required: true },
-    summary: { type: String, required: true },
-    reportFormat: { type: String, default: "TXT" },
-    filePath: String,
-    generatedAt: { type: Date, default: Date.now },
-    totalIssues: { type: Number, default: 0 },
-    highSeverityCount: { type: Number, default: 0 },
-    mediumSeverityCount: { type: Number, default: 0 },
-    lowSeverityCount: { type: Number, default: 0 },
-    issues: [reportIssueSchema],
-    suggestions: [reportSuggestionSchema],
-    recommendations: [String],
-    exportHistory: [exportHistorySchema],
-    status: {
-      type: String,
-      enum: ["generated", "exported", "export_failed", "export_cancelled"],
-      default: "generated"
-    }
-  },
-  { timestamps: true }
-);
-
-module.exports = mongoose.model("Report", reportSchema);
+module.exports = Report;

@@ -57,6 +57,7 @@ const isNeutralColor = (color) => {
   const min = Math.min(r, g, b);
 
   // Ignoring black/white/gray style colors
+  // Not ignore saturated colors only because one channel is high
   const isGrayLike = (max - min) < 28;
   const isAlmostWhite = min > 242;
   const isAlmostBlack = max < 25;
@@ -294,7 +295,7 @@ const detectWeakErrorVisibility = (nodes, globalFeatures) => {
     const visibilityDistance = colorDistance(foreground, background);
     const label = normalizeText(`${node.name || ""} ${node.text || ""}`);
 
-    // Detect whether the error element has explicit error state clues.
+    // Detect whether the error element has explicit error-state clues.
     const hasVisualErrorStyle = label.includes("error") || label.includes("warning") || label.includes("danger") || label.includes("invalid");
 
     const lowContrastScore = ratio ? Math.max(0, (4.5 - ratio) / 4.5) : 0;

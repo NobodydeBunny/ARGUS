@@ -4,6 +4,7 @@ figma.showUI(__html__, {
 });
 
 const MAX_ANALYSIS_NODES = 1000;
+const API_BASE_URL = "http://localhost:5000/api";
 
 let realtimeScanEnabled = false;
 let scanTimer = null;
@@ -242,7 +243,7 @@ async function runAnalysis(reason) {
     isAnalyzing = true;
     sendStatus("Analyzing design changes...");
 
-    const response = await fetch("http://localhost:3000/api/analysis", {
+    const response = await fetch(`${API_BASE_URL}/analysis`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -364,7 +365,7 @@ figma.ui.onmessage = async (msg) => {
       isGeneratingReport = true;
       sendStatus("Generating report...");
 
-      const response = await fetch("http://localhost:3000/api/reports/generate", {
+      const response = await fetch(`${API_BASE_URL}/reports/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -411,7 +412,7 @@ figma.ui.onmessage = async (msg) => {
       return;
     }
 
-    figma.openExternal(`http://localhost:3000/api/reports/${msg.reportId}/export`);
+    figma.openExternal(`${API_BASE_URL}/reports/${msg.reportId}/export`);
 
     figma.ui.postMessage({
       type: "system-status",
@@ -430,7 +431,7 @@ figma.ui.onmessage = async (msg) => {
     }
 
     try {
-      await fetch(`http://localhost:3000/api/reports/${msg.reportId}/export/cancel`, {
+      await fetch(`${API_BASE_URL}/reports/${msg.reportId}/export/cancel`, {
         method: "PATCH"
       });
 
@@ -460,7 +461,7 @@ figma.ui.onmessage = async (msg) => {
 
     if (activeSessionId) {
       try {
-        await fetch(`http://localhost:3000/api/sessions/${activeSessionId}/terminate`, {
+        await fetch(`${API_BASE_URL}/sessions/${activeSessionId}/terminate`, {
           method: "PATCH"
         });
       } catch (error) {
