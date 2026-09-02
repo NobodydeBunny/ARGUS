@@ -1,30 +1,28 @@
-const Suggestion = require("../databaseSchemas/Suggestion");
+const { Suggestion, DetectedIssue } = require("../databaseSchemas");
 
 const getSuggestions = async (req, res) => {
   try {
-    const filter = {};
+    const where = {};
+    if (req.query.sessionId) where.sessionId = req.query.sessionId;
+    if (req.query.issueId) where.issueId = req.query.issueId;
 
-    if (req.query.sessionId) {
-      filter.sessionId = req.query.sessionId;
-    }
+    const rows = await Suggestion.findAll({
+      where,
+      include: [{ model: DetectedIssue, as: "issue", required: false }],
+      order: [["createdAt", "DESC"]]
+    });
 
-    if (req.query.issueId) {
-      filter.issueId = req.query.issueId;
-    }
-
-    const suggestions = await Suggestion.find(filter)
-      .populate("issueId")
-      .sort({ createdAt: -1 });
+    const suggestions = rows.map((item) => {
+      const json = item.toJSON();
+      json.issueId = json.issue || json.issueId;
+      delete json.issue;
+      return json;
+    });
 
     res.status(200).json(suggestions);
   } catch (error) {
-    res.status(500).json({
-      message: "Failed to fetch suggestions",
-      error: error.message
-    });
+    res.status(500).json({ message: "Failed to fetch suggestions", error: error.message });
   }
 };
 
-module.exports = {
-  getSuggestions
-};
+module.exports = { getSuggestions };
