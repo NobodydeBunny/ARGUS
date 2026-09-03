@@ -21,9 +21,10 @@ const getFixType = (issue) => {
 };
 
 const createIssueKey = (issue) => {
+  const frameReference = issue.frameId || issue.frameName || "unknown-frame";
   const nodeReference = issue.nodeId || issue.nodeName || "unknown-node";
   const label = issue.issueLabel || issue.type || "unknown-issue";
-  return `${nodeReference}-${label}`;
+  return `${frameReference}-${nodeReference}-${label}`;
 };
 
 const buildSuggestionPayload = ({ session, analysis, detectedIssue, issue }) => {
@@ -48,6 +49,8 @@ const buildSuggestionPayload = ({ session, analysis, detectedIssue, issue }) => 
 const createIssueSnapshot = ({ detectedIssue, suggestion, issue }) => ({
   issueId: String(detectedIssue._id),
   suggestionId: String(suggestion._id),
+  frameId: issue.frameId,
+  frameName: issue.frameName,
   nodeId: issue.nodeId,
   nodeName: issue.nodeName,
   nodeType: issue.nodeType,
@@ -72,7 +75,11 @@ const createAnalysis = async (req, res) => {
   let existingSession = null;
   try {
     const startedAt = new Date();
-    const nodes = req.body.nodes || [];
+    const frames = Array.isArray(req.body.frames) ? req.body.frames : [];
+    const nodes = frames.length > 0
+      ? frames.flatMap((frame) => Array.isArray(frame.nodes) ? frame.nodes : [])
+      : (req.body.nodes || []);
+    const frameCount = Number(req.body.frameCount || frames.length || (nodes.length > 0 ? 1 : 0));
     const issues = analyzeDesign(req.body);
 
     if (req.body.sessionId) {
@@ -91,6 +98,7 @@ const createAnalysis = async (req, res) => {
           figmaPageName: req.body.designName,
           fileType: req.body.fileType || "Figma",
           scanMode: req.body.scanMode || "manual",
+          frameCount,
           nodeCount: nodes.length,
           startedAt,
           status: "started"
@@ -105,6 +113,8 @@ const createAnalysis = async (req, res) => {
         designName: req.body.designName || "Untitled Figma Design",
         fileType: req.body.fileType || "Figma",
         scanMode: req.body.scanMode || "manual",
+        frameCount,
+        frames,
         nodeCount: nodes.length,
         nodes,
         totalIssues: issues.length,
@@ -137,6 +147,8 @@ const createAnalysis = async (req, res) => {
         if (detectedIssue) {
           await detectedIssue.update({
             analysisId: analysis._id,
+            frameId: issue.frameId,
+            frameName: issue.frameName,
             nodeId: issue.nodeId,
             nodeName: issue.nodeName,
             nodeType: issue.nodeType,
@@ -155,6 +167,8 @@ const createAnalysis = async (req, res) => {
             sessionId: session._id,
             analysisId: analysis._id,
             issueKey,
+            frameId: issue.frameId,
+            frameName: issue.frameName,
             nodeId: issue.nodeId,
             nodeName: issue.nodeName,
             nodeType: issue.nodeType,
@@ -198,6 +212,7 @@ const createAnalysis = async (req, res) => {
         modelName: MODEL_NAME,
         modelVersion: MODEL_VERSION,
         analysisMethod: ANALYSIS_METHOD,
+        frameCount,
         nodeCount: nodes.length,
         scanMode: req.body.scanMode || "manual",
         totalIssues,

@@ -174,29 +174,81 @@ function extractNodeData(node) {
   };
 }
 
-function collectNodeAndChildren(node, collectedNodes) {
+function collectNodeAndChildren(node, collectedNodes, rootFrameId, rootFrameName) {
   if (node.removed) {
     return;
   }
 
-  collectedNodes.push(extractNodeData(node));
+  collectedNodes.push({
+    ...extractNodeData(node),
+    rootFrameId,
+    rootFrameName
+  });
 
   if ("children" in node) {
     node.children.forEach((child) => {
-      collectNodeAndChildren(child, collectedNodes);
+      collectNodeAndChildren(child, collectedNodes, rootFrameId, rootFrameName);
     });
   }
 }
 
-function collectSelectedNodes() {
-  const selectedNodes = figma.currentPage.selection;
-  const collectedNodes = [];
+function findContainingFrame(node) {
+  let current = node;
 
-  selectedNodes.forEach((node) => {
-    collectNodeAndChildren(node, collectedNodes);
+  while (current && current.type !== "PAGE") {
+    if (current.type === "FRAME") {
+      return current;
+    }
+    current = current.parent;
+  }
+
+  return node;
+}
+
+function getAnalysisScope(reason) {
+  const selection = figma.currentPage.selection;
+
+  if (reason === "manual" && selection.length === 0) {
+    return figma.currentPage.children.filter((node) => node.type === "FRAME");
+  }
+
+  if (reason !== "manual" && selection.length === 0) {
+    return [];
+  }
+
+  const roots = [];
+  const seen = new Set();
+
+  selection.forEach((node) => {
+    const root = findContainingFrame(node);
+    if (!seen.has(root.id)) {
+      seen.add(root.id);
+      roots.push(root);
+    }
   });
 
-  return collectedNodes;
+  return roots;
+}
+
+function collectFrameData(scopeNodes) {
+  return scopeNodes.map((frame) => {
+    const frameNodes = [];
+
+    collectNodeAndChildren(
+      frame,
+      frameNodes,
+      frame.id,
+      frame.name
+    );
+
+    return {
+      frameId: frame.id,
+      frameName: frame.name,
+      frameType: frame.type,
+      nodeCount: frameNodes.length,
+      nodes: frameNodes
+    };
+  });
 }
 
 async function runAnalysis(reason) {
@@ -205,21 +257,26 @@ async function runAnalysis(reason) {
     return;
   }
 
-  const nodes = collectSelectedNodes();
+  const scopeNodes = getAnalysisScope(reason);
 
-  if (nodes.length === 0) {
+  if (scopeNodes.length === 0) {
     figma.ui.postMessage({
       type: "error",
-      message: "Please select at least one layer or frame in Figma."
+      message: reason === "manual"
+        ? "No analyzable frames were found on the current page."
+        : "Please select at least one frame before enabling near real-time analysis."
     });
 
     return;
   }
 
-  if (nodes.length > MAX_ANALYSIS_NODES) {
+  const frames = collectFrameData(scopeNodes);
+  const totalNodeCount = frames.reduce((total, frame) => total + frame.nodeCount, 0);
+
+  if (totalNodeCount > MAX_ANALYSIS_NODES) {
     figma.ui.postMessage({
       type: "processing-limit",
-      message: `Processing limitation detected. You selected ${nodes.length} nodes. Please select 80 nodes or fewer for near real-time analysis.`
+      message: `Processing limitation detected. ${totalNodeCount} nodes were found across ${frames.length} frame(s). The current analysis limit is ${MAX_ANALYSIS_NODES} nodes.`
     });
 
     return;
@@ -230,8 +287,9 @@ async function runAnalysis(reason) {
     designName: figma.currentPage.name || "Untitled",
     fileType: "Figma",
     scanMode: reason,
-    nodeCount: nodes.length,
-    nodes
+    frameCount: frames.length,
+    nodeCount: totalNodeCount,
+    frames
   };
 
   figma.ui.postMessage({

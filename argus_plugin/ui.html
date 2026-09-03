@@ -1048,7 +1048,7 @@ const pages = {
         <div class="issue-card ${getSeverityClass(issue.severity)}">
           <h5>${escapeHtml(issue.type)}</h5>
           <p>${escapeHtml(issue.message, "Pattern issue detected in the selected design.")}</p>
-          <p class="frame">Layer: ${escapeHtml(issue.nodeName, "Unknown")}</p>
+          <p class="frame">Frame: ${escapeHtml(issue.frameName, "Unknown frame")} · Layer: ${escapeHtml(issue.nodeName, "Unknown")}</p>
           <div class="suggestion">
             <h4>✨ REAL-TIME AI SUGGESTION</h4>
             <p>${escapeHtml(getDynamicSuggestion(issue))}</p>
@@ -1081,7 +1081,7 @@ const pages = {
           </p>
 
           <p class="frame">
-            Layer: ${escapeHtml(issue.nodeName, "Unknown")} · Type: ${escapeHtml(issue.nodeType, "Unknown")}
+            Frame: ${escapeHtml(issue.frameName, "Unknown frame")} · Layer: ${escapeHtml(issue.nodeName, "Unknown")} · Type: ${escapeHtml(issue.nodeType, "Unknown")}
           </p>
 
           <div class="suggestion">
@@ -1117,7 +1117,7 @@ const pages = {
         reportTopIssues.innerHTML = "<p>No top issues available.</p>";
       } else {
         reportTopIssues.innerHTML = issues.slice(0, 3).map(issue => `
-          <p><span>•</span> ${escapeHtml(issue.type)} in ${escapeHtml(issue.nodeName, "Unknown layer")}</p>
+          <p><span>•</span> ${escapeHtml(issue.type)} in ${escapeHtml(issue.frameName, "Unknown frame")} / ${escapeHtml(issue.nodeName, "Unknown layer")}</p>
           <p>${escapeHtml(getDynamicSuggestion(issue))}</p>
         `).join("");
       }

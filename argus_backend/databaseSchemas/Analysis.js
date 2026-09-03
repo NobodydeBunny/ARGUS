@@ -10,6 +10,8 @@ const Analysis = sequelize.define("Analysis", {
   modelName: { type: DataTypes.STRING, defaultValue: "Random Forest UI Issue Classifier", field: "model_name" },
   modelVersion: { type: DataTypes.STRING, defaultValue: "2.0", field: "model_version" },
   analysisMethod: { type: DataTypes.STRING, defaultValue: "trained_metadata_model_with_dynamic_feedback", field: "analysis_method" },
+  frameCount: { type: DataTypes.INTEGER, defaultValue: 0, field: "frame_count" },
+  frames: { type: DataTypes.JSONB, defaultValue: [] },
   nodeCount: { type: DataTypes.INTEGER, defaultValue: 0, field: "node_count" },
   nodes: { type: DataTypes.JSONB, defaultValue: [] },
   totalIssues: { type: DataTypes.INTEGER, defaultValue: 0, field: "total_issues" },

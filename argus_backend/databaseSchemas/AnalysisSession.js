@@ -11,6 +11,7 @@ const AnalysisSession = sequelize.define("AnalysisSession", {
   modelVersion: { type: DataTypes.STRING, defaultValue: "2.0", field: "model_version" },
   analysisMethod: { type: DataTypes.STRING, defaultValue: "trained_metadata_model_with_dynamic_feedback", field: "analysis_method" },
   scanMode: { type: DataTypes.STRING, defaultValue: "manual", field: "scan_mode" },
+  frameCount: { type: DataTypes.INTEGER, defaultValue: 0, field: "frame_count" },
   nodeCount: { type: DataTypes.INTEGER, defaultValue: 0, field: "node_count" },
   totalIssues: { type: DataTypes.INTEGER, defaultValue: 0, field: "total_issues" },
   totalSuggestions: { type: DataTypes.INTEGER, defaultValue: 0, field: "total_suggestions" },
