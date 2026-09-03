@@ -6,6 +6,8 @@ const DetectedIssue = sequelize.define("DetectedIssue", {
   sessionId: { type: DataTypes.UUID, allowNull: false, field: "session_id" },
   analysisId: { type: DataTypes.UUID, field: "analysis_id" },
   issueKey: { type: DataTypes.STRING(700), allowNull: false, field: "issue_key" },
+  frameId: { type: DataTypes.STRING, field: "frame_id" },
+  frameName: { type: DataTypes.STRING, field: "frame_name" },
   nodeId: { type: DataTypes.STRING, field: "node_id" },
   nodeName: { type: DataTypes.STRING, field: "node_name" },
   nodeType: { type: DataTypes.STRING, field: "node_type" },

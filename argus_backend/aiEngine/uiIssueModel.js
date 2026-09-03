@@ -86,6 +86,8 @@ const classifyCandidate = (candidate) => {
   }
 
   return {
+    frameId: candidate.frameId,
+    frameName: candidate.frameName,
     nodeId: candidate.nodeId,
     nodeName: candidate.nodeName || "Unknown UI Element",
     nodeType: candidate.nodeType || "Unknown",
