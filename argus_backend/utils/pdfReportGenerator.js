@@ -5,7 +5,7 @@ const fs = require("fs");
 const PAGE_MARGIN = 50;
 
 const COLORS = {
-  primary: "#4F46E5",
+  primary: "#9a95fc",
   primaryDark: "#3730A3",
   primaryTint: "#EEF2FF",
   dark: "#111827",
@@ -16,7 +16,7 @@ const COLORS = {
   high: "#B91C1C",
   highBackground: "#FEE2E2",
 
-  medium: "#B45309",
+  medium: "#d27d3d",
   mediumBackground: "#FEF3C7",
 
   low: "#047857",
@@ -33,10 +33,85 @@ const logoPath = path.join(
   "argus_logo.jpeg"
 );
 
-const formatDate = (value) => {
+// ---------------------------------------------------------------------------
+// Formatting helpers
+// ---------------------------------------------------------------------------
+
+const getValue = (source, keys, fallback = "-") => {
+  if (!source) return fallback;
+
+  for (const key of keys) {
+    if (
+      source[key] !== undefined &&
+      source[key] !== null &&
+      source[key] !== ""
+    ) {
+      return source[key];
+    }
+
+    if (
+      source.dataValues &&
+      source.dataValues[key] !== undefined &&
+      source.dataValues[key] !== null &&
+      source.dataValues[key] !== ""
+    ) {
+      return source.dataValues[key];
+    }
+  }
+
+  return fallback;
+};
+
+const normalizeId = (value) => {
+  if (!value || value === "-") return "";
+  return String(value);
+};
+
+const humanize = (value = "") => {
+  if (!value || value === "-") return "-";
+
+  return String(value)
+    .replace(/_/g, " ")
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+};
+
+const capitalize = (value = "") => {
   if (!value) return "-";
 
-  return new Date(value).toLocaleString("en-GB", {
+  return (
+    String(value).charAt(0).toUpperCase() +
+    String(value).slice(1)
+  );
+};
+
+const formatStatus = (value) => {
+  if (!value || value === "-") return "-";
+  return humanize(value);
+};
+
+const formatOccurrence = (value) => {
+  if (
+    value === null ||
+    value === undefined ||
+    value === "-"
+  ) {
+    return "1";
+  }
+
+  return String(value);
+};
+
+const formatDate = (value) => {
+  if (!value || value === "-") return "-";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return date.toLocaleString("en-GB", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -46,87 +121,25 @@ const formatDate = (value) => {
 };
 
 const formatConfidence = (value) => {
-  if (value === null || value === undefined) {
+  if (
+    value === null ||
+    value === undefined ||
+    value === "-"
+  ) {
     return "-";
   }
 
-  return `${Math.round(Number(value) * 100)}%`;
-};
+  const numberValue = Number(value);
 
-const capitalize = (value = "") => {
-  if (!value) return "-";
-
-  return (
-    value.charAt(0).toUpperCase() +
-    value.slice(1)
-  );
-};
-
-const getAnalyzedFrameNames = (
-  analysis,
-  session,
-  issues = []
-) => {
-  const frameNames = [];
-
-  /*
-   * Primary source:
-   * analysis.frames contains the nested metadata
-   * extracted from the analyzed Figma frames.
-   */
-  if (Array.isArray(analysis?.frames)) {
-    analysis.frames.forEach((frame) => {
-      if (
-        frame &&
-        frame.frameName &&
-        !frameNames.includes(frame.frameName)
-      ) {
-        frameNames.push(frame.frameName);
-      }
-    });
+  if (Number.isNaN(numberValue)) {
+    return "-";
   }
 
-  /*
-   * Optional fallback:
-   * If frame information is stored in the session.
-   */
-  if (
-    frameNames.length === 0 &&
-    Array.isArray(session?.frames)
-  ) {
-    session.frames.forEach((frame) => {
-      if (
-        frame &&
-        frame.frameName &&
-        !frameNames.includes(frame.frameName)
-      ) {
-        frameNames.push(frame.frameName);
-      }
-    });
+  if (numberValue > 1) {
+    return `${Math.round(numberValue)}%`;
   }
 
-  /*
-   * Final fallback:
-   * Each detected issue already contains frameName,
-   * so frame names can still be reconstructed even
-   * if the analysis snapshot does not contain frames.
-   */
-  if (
-    frameNames.length === 0 &&
-    Array.isArray(issues)
-  ) {
-    issues.forEach((issue) => {
-      if (
-        issue &&
-        issue.frameName &&
-        !frameNames.includes(issue.frameName)
-      ) {
-        frameNames.push(issue.frameName);
-      }
-    });
-  }
-
-  return frameNames;
+  return `${Math.round(numberValue * 100)}%`;
 };
 
 const severityStyle = (severity) => {
@@ -149,6 +162,67 @@ const severityStyle = (severity) => {
         background: COLORS.mediumBackground
       };
   }
+};
+
+const getAnalyzedFrameNames = (
+  analysis,
+  session,
+  issues = []
+) => {
+  const frameNames = [];
+
+  if (Array.isArray(analysis?.frames)) {
+    analysis.frames.forEach((frame) => {
+      const frameName =
+        getValue(frame, ["frameName", "name"], "");
+
+      if (
+        frameName &&
+        frameName !== "-" &&
+        !frameNames.includes(frameName)
+      ) {
+        frameNames.push(frameName);
+      }
+    });
+  }
+
+  if (
+    frameNames.length === 0 &&
+    Array.isArray(session?.frames)
+  ) {
+    session.frames.forEach((frame) => {
+      const frameName =
+        getValue(frame, ["frameName", "name"], "");
+
+      if (
+        frameName &&
+        frameName !== "-" &&
+        !frameNames.includes(frameName)
+      ) {
+        frameNames.push(frameName);
+      }
+    });
+  }
+
+  if (
+    frameNames.length === 0 &&
+    Array.isArray(issues)
+  ) {
+    issues.forEach((issue) => {
+      const frameName =
+        getValue(issue, ["frameName", "frame_name"], "");
+
+      if (
+        frameName &&
+        frameName !== "-" &&
+        !frameNames.includes(frameName)
+      ) {
+        frameNames.push(frameName);
+      }
+    });
+  }
+
+  return frameNames;
 };
 
 // ---------------------------------------------------------------------------
@@ -202,20 +276,24 @@ const drawPageHeader = (doc) => {
   doc.y = 88;
 };
 
-// Small rounded "pill" used for severity everywhere in the document
 const drawSeverityPill = (
   doc,
   severity,
   x,
   y,
-  { width = 62, align = "left" } = {}
+  {
+    width = 62,
+    align = "left"
+  } = {}
 ) => {
   const style = severityStyle(severity);
   const label = `${capitalize(severity)}`;
   const pillWidth = width;
   const pillHeight = 16;
   const drawX =
-    align === "right" ? x - pillWidth : x;
+    align === "right"
+      ? x - pillWidth
+      : x;
 
   doc
     .roundedRect(drawX, y, pillWidth, pillHeight, 8)
@@ -229,11 +307,18 @@ const drawSeverityPill = (
       align: "center"
     });
 
-  return { x: drawX, width: pillWidth, height: pillHeight };
+  return {
+    x: drawX,
+    width: pillWidth,
+    height: pillHeight
+  };
 };
 
-// A small colored square used as a section-heading bullet
-const drawSectionLabel = (doc, label, color = COLORS.primary) => {
+const drawSectionLabel = (
+  doc,
+  label,
+  color = COLORS.primary
+) => {
   const y = doc.y;
 
   doc
@@ -246,6 +331,220 @@ const drawSectionLabel = (doc, label, color = COLORS.primary) => {
     .text(label, PAGE_MARGIN + 12, y);
 
   doc.y = y + 15;
+};
+
+const drawMetaField = (
+  doc,
+  x,
+  y,
+  width,
+  label,
+  value
+) => {
+  doc
+    .fontSize(7.5)
+    .fillColor(COLORS.muted)
+    .text(label.toUpperCase(), x, y, {
+      width
+    });
+
+  doc
+    .fontSize(9)
+    .fillColor(COLORS.dark)
+    .text(String(value || "-"), x, y + 11, {
+      width,
+      lineGap: 1
+    });
+};
+
+const drawInfoGrid = (
+  doc,
+  title,
+  fields,
+  {
+    background = COLORS.light,
+    border = COLORS.border
+  } = {}
+) => {
+  const cardX = PAGE_MARGIN;
+  const cardWidth =
+    doc.page.width -
+    PAGE_MARGIN * 2;
+
+  const padding = 14;
+  const gap = 14;
+  const colWidth =
+    (cardWidth - padding * 2 - gap) / 2;
+
+  const titleHeight = title ? 24 : 0;
+
+  const rowHeights = [];
+
+  for (
+    let i = 0;
+    i < fields.length;
+    i += 2
+  ) {
+    const left = fields[i];
+    const right = fields[i + 1];
+
+    const leftHeight = left
+      ? doc.heightOfString(String(left.value || "-"), {
+          width: colWidth,
+          lineGap: 1
+        }) + 15
+      : 0;
+
+    const rightHeight = right
+      ? doc.heightOfString(String(right.value || "-"), {
+          width: colWidth,
+          lineGap: 1
+        }) + 15
+      : 0;
+
+    rowHeights.push(
+      Math.max(36, leftHeight, rightHeight)
+    );
+  }
+
+  const cardHeight =
+    padding +
+    titleHeight +
+    rowHeights.reduce((sum, h) => sum + h, 0) +
+    padding -
+    4;
+
+  ensureSpace(doc, cardHeight + 20);
+
+  const startY = doc.y;
+
+  doc
+    .roundedRect(
+      cardX,
+      startY,
+      cardWidth,
+      cardHeight,
+      6
+    )
+    .fillAndStroke(
+      background,
+      border
+    );
+
+  let contentY =
+    startY +
+    padding;
+
+  if (title) {
+    doc
+      .fontSize(9.5)
+      .fillColor(COLORS.dark)
+      .text(
+        title,
+        cardX + padding,
+        contentY,
+        {
+          width:
+            cardWidth -
+            padding * 2
+        }
+      );
+
+    contentY += titleHeight;
+  }
+
+  let currentY = contentY;
+
+  for (
+    let i = 0;
+    i < fields.length;
+    i += 2
+  ) {
+    const left = fields[i];
+    const right = fields[i + 1];
+    const rowIndex = Math.floor(i / 2);
+
+    if (left) {
+      drawMetaField(
+        doc,
+        cardX + padding,
+        currentY,
+        colWidth,
+        left.label,
+        left.value
+      );
+    }
+
+    if (right) {
+      drawMetaField(
+        doc,
+        cardX + padding + colWidth + gap,
+        currentY,
+        colWidth,
+        right.label,
+        right.value
+      );
+    }
+
+    currentY += rowHeights[rowIndex];
+  }
+
+  doc.y =
+    startY +
+    cardHeight +
+    16;
+};
+
+const drawTextSection = (
+  doc,
+  label,
+  text,
+  {
+    color = COLORS.primary,
+    indent = 12
+  } = {}
+) => {
+  const contentWidth =
+    doc.page.width -
+    PAGE_MARGIN * 2 -
+    indent;
+
+  const safeText =
+    text ||
+    "No additional information available.";
+
+  const requiredHeight =
+    doc.heightOfString(safeText, {
+      width: contentWidth,
+      lineGap: 2
+    }) + 30;
+
+  ensureSpace(doc, requiredHeight);
+
+  doc.x = PAGE_MARGIN;
+
+  drawSectionLabel(
+    doc,
+    label,
+    color
+  );
+
+  doc.y += 4;
+
+  doc
+    .fontSize(9)
+    .fillColor(COLORS.text)
+    .text(
+      safeText,
+      PAGE_MARGIN + indent,
+      doc.y,
+      {
+        width: contentWidth,
+        lineGap: 2
+      }
+    );
+
+  doc.moveDown(1.1);
 };
 
 // ---------------------------------------------------------------------------
@@ -357,10 +656,6 @@ const drawCoverHeader = (
       COLORS.border
     );
 
-  /*
-   * Convert the frame-name array into
-   * readable report text.
-   */
   const analyzedFramesText =
     Array.isArray(frameNames) &&
     frameNames.length > 0
@@ -371,42 +666,44 @@ const drawCoverHeader = (
     [
       [
         "Design",
-        analysis.designName ||
+        getValue(
+          analysis,
+          ["designName", "design_name"],
           "Untitled"
+        )
       ],
-
       [
         "Analysis Mode",
         capitalize(
-          analysis.scanMode ||
+          getValue(
+            analysis,
+            ["scanMode", "scan_mode"],
             "manual"
+          )
         )
       ]
     ],
-
     [
       [
         "Frames Analyzed",
         analyzedFramesText
       ],
-
       [
         "Elements Analyzed",
         String(
-          analysis.nodeCount ||
+          getValue(
+            analysis,
+            ["nodeCount", "node_count"],
             0
+          )
         )
       ]
     ],
-
     [
       [
         "Generated",
-        formatDate(
-          new Date()
-        )
+        formatDate(new Date())
       ],
-
       null
     ]
   ];
@@ -458,7 +755,7 @@ const drawCoverHeader = (
               COLORS.dark
             )
             .text(
-              value,
+              String(value || "-"),
               x,
               rowY + 11,
               {
@@ -493,52 +790,94 @@ const drawSummaryCards = (
   const y = doc.y;
 
   const cards = [
-    { label: "High Priority", count: counts.high, severity: "high" },
-    { label: "Medium Priority", count: counts.medium, severity: "medium" },
-    { label: "Low Priority", count: counts.low, severity: "low" }
+    {
+      label: "High Priority",
+      count: counts.high,
+      severity: "high"
+    },
+    {
+      label: "Medium Priority",
+      count: counts.medium,
+      severity: "medium"
+    },
+    {
+      label: "Low Priority",
+      count: counts.low,
+      severity: "low"
+    }
   ];
 
   cards.forEach((card, index) => {
-    const x = startX + index * (cardWidth + gap);
-    const style = severityStyle(card.severity);
+    const x =
+      startX +
+      index *
+        (cardWidth + gap);
+
+    const style =
+      severityStyle(card.severity);
 
     doc
-      .roundedRect(x, y, cardWidth, cardHeight, 8)
+      .roundedRect(
+        x,
+        y,
+        cardWidth,
+        cardHeight,
+        8
+      )
       .fill(style.background);
 
     doc
-      .roundedRect(x, y, cardWidth, 4, 2)
+      .roundedRect(
+        x,
+        y,
+        cardWidth,
+        4,
+        2
+      )
       .fill(style.text);
 
     doc
       .fontSize(24)
       .fillColor(style.text)
-      .text(String(card.count), x, y + 16, {
-        width: cardWidth,
-        align: "center"
-      });
+      .text(
+        String(card.count),
+        x,
+        y + 16,
+        {
+          width: cardWidth,
+          align: "center"
+        }
+      );
 
     doc
       .fontSize(8.5)
       .fillColor(style.text)
-      .text(card.label.toUpperCase(), x, y + 46, {
-        width: cardWidth,
-        align: "center"
-      });
+      .text(
+        card.label.toUpperCase(),
+        x,
+        y + 46,
+        {
+          width: cardWidth,
+          align: "center"
+        }
+      );
   });
 
-  doc.y = y + cardHeight + 42;
+  doc.y =
+    y +
+    cardHeight +
+    42;
 };
 
 // ---------------------------------------------------------------------------
-// "Issues at a Glance" table
+// Issues at a Glance
 // ---------------------------------------------------------------------------
 
 const drawOverview = (
   doc,
   issues
 ) => {
-  ensureSpace(doc, 120);
+  ensureSpace(doc, 140);
 
   doc
     .fontSize(14)
@@ -548,81 +887,219 @@ const drawOverview = (
   doc.moveDown(1);
 
   const tableX = PAGE_MARGIN;
-  const tableWidth = doc.page.width - PAGE_MARGIN * 2;
+  const tableWidth =
+    doc.page.width -
+    PAGE_MARGIN * 2;
+
   const columns = {
-    index: { x: tableX + 8, width: 24 },
-    type: { x: tableX + 36, width: 230 },
-    element: { x: tableX + 270, width: 130 },
-    severity: { x: tableX + tableWidth - 70, width: 62 }
+    index: {
+      x: tableX + 8,
+      width: 24
+    },
+    type: {
+      x: tableX + 38,
+      width: 145
+    },
+    location: {
+      x: tableX + 190,
+      width: 145
+    },
+    status: {
+      x: tableX + 340,
+      width: 60
+    },
+    severity: {
+      x: tableX + tableWidth - 70,
+      width: 62
+    }
   };
 
   const headerY = doc.y;
-  const headerHeight = 26;
+  const headerHeight = 28;
 
   doc
-    .rect(tableX, headerY, tableWidth, headerHeight)
+    .rect(
+      tableX,
+      headerY,
+      tableWidth,
+      headerHeight
+    )
     .fill(COLORS.light);
 
   doc
     .fontSize(7.5)
     .fillColor(COLORS.muted)
-    .text("#", columns.index.x, headerY + 9, { width: columns.index.width })
-    .text("ISSUE TYPE", columns.type.x, headerY + 9, { width: columns.type.width })
-    .text("ELEMENT", columns.element.x, headerY + 9, { width: columns.element.width })
-    .text("SEVERITY", columns.severity.x, headerY + 9, {
-      width: columns.severity.width,
-      align: "right"
-    });
+    .text(
+      "#",
+      columns.index.x,
+      headerY + 10,
+      {
+        width: columns.index.width
+      }
+    )
+    .text(
+      "ISSUE TYPE",
+      columns.type.x,
+      headerY + 10,
+      {
+        width: columns.type.width
+      }
+    )
+    .text(
+      "FRAME / LAYER",
+      columns.location.x,
+      headerY + 10,
+      {
+        width: columns.location.width
+      }
+    )
+    .text(
+      "STATUS",
+      columns.status.x,
+      headerY + 10,
+      {
+        width: columns.status.width
+      }
+    )
+    .text(
+      "SEVERITY",
+      columns.severity.x,
+      headerY + 10,
+      {
+        width: columns.severity.width,
+        align: "right"
+      }
+    );
 
-  doc.y = headerY + headerHeight;
+  doc.y =
+    headerY +
+    headerHeight;
 
   issues.forEach((issue, index) => {
-    ensureSpace(doc, 36);
+    ensureSpace(doc, 50);
 
-    const rowHeight = 32;
+    const rowHeight = 46;
     const rowY = doc.y;
 
     if (index % 2 === 1) {
-      doc.rect(tableX, rowY, tableWidth, rowHeight).fill(COLORS.light);
+      doc
+        .rect(
+          tableX,
+          rowY,
+          tableWidth,
+          rowHeight
+        )
+        .fill(COLORS.light);
     }
+
+    const frameName =
+      getValue(
+        issue,
+        ["frameName", "frame_name"],
+        "Current Design"
+      );
+
+    const layerName =
+      getValue(
+        issue,
+        ["nodeName", "layerName", "node_name"],
+        "Design element"
+      );
+
+    const status =
+      formatStatus(
+        getValue(
+          issue,
+          ["status"],
+          "open"
+        )
+      );
 
     doc
       .fontSize(8.5)
       .fillColor(COLORS.muted)
-      .text(String(index + 1).padStart(2, "0"), columns.index.x, rowY + 10, {
-        width: columns.index.width
-      });
+      .text(
+        String(index + 1).padStart(2, "0"),
+        columns.index.x,
+        rowY + 15,
+        {
+          width: columns.index.width
+        }
+      );
 
     doc
+      .fontSize(8.5)
       .fillColor(COLORS.dark)
-      .text(issue.issueType || "Usability Issue", columns.type.x, rowY + 10, {
-        width: columns.type.width,
-        ellipsis: true
-      });
+      .text(
+        getValue(
+          issue,
+          ["issueType", "issue_type"],
+          "Usability Issue"
+        ),
+        columns.type.x,
+        rowY + 10,
+        {
+          width: columns.type.width,
+          height: rowHeight - 12,
+          ellipsis: true
+        }
+      );
 
     doc
+      .fontSize(7.8)
+      .fillColor(COLORS.text)
+      .text(
+        `Frame: ${frameName}\nLayer: ${layerName}`,
+        columns.location.x,
+        rowY + 7,
+        {
+          width: columns.location.width,
+          height: rowHeight - 8,
+          lineGap: 2,
+          ellipsis: true
+        }
+      );
+
+    doc
+      .fontSize(8)
       .fillColor(COLORS.muted)
-      .text(issue.nodeName || "Design element", columns.element.x, rowY + 10, {
-        width: columns.element.width,
-        ellipsis: true
-      });
+      .text(
+        status,
+        columns.status.x,
+        rowY + 15,
+        {
+          width: columns.status.width,
+          ellipsis: true
+        }
+      );
 
     drawSeverityPill(
       doc,
-      issue.severity,
+      getValue(issue, ["severity"], "medium"),
       columns.severity.x + columns.severity.width,
-      rowY + 8,
-      { width: 62, align: "right" }
+      rowY + 14,
+      {
+        width: 62,
+        align: "right"
+      }
     );
 
     doc
-      .moveTo(tableX, rowY + rowHeight)
-      .lineTo(tableX + tableWidth, rowY + rowHeight)
+      .moveTo(
+        tableX,
+        rowY + rowHeight
+      )
+      .lineTo(
+        tableX + tableWidth,
+        rowY + rowHeight
+      )
       .strokeColor(COLORS.border)
       .lineWidth(0.5)
       .stroke();
 
-    doc.y = rowY + rowHeight;
+    doc.y =
+      rowY +
+      rowHeight;
   });
 
   doc.moveDown(1.6);
@@ -634,25 +1111,55 @@ const drawOverview = (
 
 const findSuggestion = (
   issue,
-  suggestions
+  suggestions = []
 ) => {
-  return suggestions.find(
-    (suggestion) =>
-      String(suggestion.issueId) ===
-      String(issue._id)
-  );
-};
+  const issueId =
+    normalizeId(
+      getValue(
+        issue,
+        ["_id", "id", "issueId"],
+        ""
+      )
+    );
 
-const drawMetaField = (doc, x, y, width, label, value) => {
-  doc
-    .fontSize(7.5)
-    .fillColor(COLORS.muted)
-    .text(label.toUpperCase(), x, y, { width });
+  const issueKey =
+    normalizeId(
+      getValue(
+        issue,
+        ["issueKey", "issue_key"],
+        ""
+      )
+    );
 
-  doc
-    .fontSize(9)
-    .fillColor(COLORS.dark)
-    .text(value, x, y + 11, { width });
+  return suggestions.find((suggestion) => {
+    const suggestionIssueId =
+      normalizeId(
+        getValue(
+          suggestion,
+          [
+            "issueId",
+            "issue_id",
+            "detectedIssueId",
+            "detected_issue_id"
+          ],
+          ""
+        )
+      );
+
+    const suggestionIssueKey =
+      normalizeId(
+        getValue(
+          suggestion,
+          ["issueKey", "issue_key"],
+          ""
+        )
+      );
+
+    return (
+      suggestionIssueId === issueId ||
+      suggestionIssueKey === issueKey
+    );
+  });
 };
 
 const drawIssueCard = (
@@ -661,185 +1168,489 @@ const drawIssueCard = (
   suggestion,
   index
 ) => {
-  ensureSpace(doc, 300);
+  ensureSpace(doc, 360);
 
-  const severity = severityStyle(issue.severity);
+  const severityValue =
+    getValue(
+      issue,
+      ["severity"],
+      "medium"
+    );
+
+  const severity =
+    severityStyle(severityValue);
+
   const cardX = PAGE_MARGIN;
-  const cardWidth = doc.page.width - PAGE_MARGIN * 2;
+  const cardWidth =
+    doc.page.width -
+    PAGE_MARGIN * 2;
+
   const startY = doc.y;
-  const headerHeight = 38;
+  const headerHeight = 42;
   const barWidth = 5;
 
-  // Card header strip
+  const issueType =
+    getValue(
+      issue,
+      ["issueType", "issue_type"],
+      "Usability Issue"
+    );
+
+  const frameName =
+    getValue(
+      issue,
+      ["frameName", "frame_name"],
+      "Current Design"
+    );
+
+  const layerName =
+    getValue(
+      issue,
+      ["nodeName", "layerName", "node_name"],
+      "Design element"
+    );
+
+  const nodeType =
+    getValue(
+      issue,
+      ["nodeType", "node_type"],
+      "-"
+    );
+
+  const nodeId =
+    getValue(
+      issue,
+      ["nodeId", "node_id"],
+      "-"
+    );
+
+  const issueKey =
+    getValue(
+      issue,
+      ["issueKey", "issue_key"],
+      "-"
+    );
+
+  const status =
+    formatStatus(
+      getValue(
+        issue,
+        ["status"],
+        "open"
+      )
+    );
+
+  const firstDetectedAt =
+    formatDate(
+      getValue(
+        issue,
+        [
+          "firstDetectedAt",
+          "first_detected_at",
+          "createdAt",
+          "created_at"
+        ],
+        null
+      )
+    );
+
+  const lastDetectedAt =
+    formatDate(
+      getValue(
+        issue,
+        [
+          "lastDetectedAt",
+          "last_detected_at",
+          "updatedAt",
+          "updated_at"
+        ],
+        null
+      )
+    );
+
+  const resolvedAtRaw =
+    getValue(
+      issue,
+      ["resolvedAt", "resolved_at"],
+      null
+    );
+
+  const resolvedAt =
+    resolvedAtRaw
+      ? formatDate(resolvedAtRaw)
+      : "Not resolved yet";
+
+  const occurrenceCount =
+    formatOccurrence(
+      getValue(
+        issue,
+        [
+          "occurrenceCount",
+          "occurrence_count"
+        ],
+        1
+      )
+    );
+
+  const confidence =
+    formatConfidence(
+      getValue(
+        issue,
+        [
+          "confidenceScore",
+          "confidence_score"
+        ],
+        null
+      )
+    );
+
+  const principle =
+    getValue(
+      issue,
+      ["principle"],
+      "Not specified"
+    );
+
+  const description =
+    getValue(
+      issue,
+      ["description"],
+      "A usability concern was detected."
+    );
+
+  const evidenceText =
+    getValue(
+      suggestion,
+      [
+        "evidenceSummary",
+        "evidence_summary",
+        "evidence"
+      ],
+      null
+    ) ||
+    getValue(
+      suggestion,
+      ["explanation"],
+      null
+    ) ||
+    "ARGUS identified a deviation from the expected usability pattern.";
+
+  const recommendation =
+    getValue(
+      suggestion,
+      [
+        "detailedSuggestion",
+        "detailed_suggestion"
+      ],
+      null
+    ) ||
+    getValue(
+      suggestion,
+      [
+        "shortSuggestion",
+        "short_suggestion"
+      ],
+      null
+    ) ||
+    getValue(
+      suggestion,
+      ["description"],
+      null
+    ) ||
+    "Review this element and apply a consistent usability pattern.";
+
+  const suggestionPriority =
+    humanize(
+      getValue(
+        suggestion,
+        ["priority"],
+        severityValue
+      )
+    );
+
+  const fixType =
+    humanize(
+      getValue(
+        suggestion,
+        ["fixType", "fix_type"],
+        "review_ui_pattern"
+      )
+    );
+
+  const generatedBy =
+    getValue(
+      suggestion,
+      ["generatedBy", "generated_by"],
+      "ARGUS AI Recommendation Engine"
+    );
+
+  const generatedAt =
+    formatDate(
+      getValue(
+        suggestion,
+        [
+          "generatedAt",
+          "generated_at",
+          "createdAt",
+          "created_at"
+        ],
+        null
+      )
+    );
+
   doc
-    .roundedRect(cardX, startY, cardWidth, headerHeight, 5)
+    .roundedRect(
+      cardX,
+      startY,
+      cardWidth,
+      headerHeight,
+      6
+    )
     .fill(COLORS.light);
 
-  // Numbered badge
-  const badgeCenterX = cardX + 20;
-  const badgeCenterY = startY + headerHeight / 2;
+  doc
+    .rect(
+      cardX,
+      startY,
+      barWidth,
+      headerHeight
+    )
+    .fill(severity.text);
+
+  const badgeCenterX =
+    cardX + 22;
+
+  const badgeCenterY =
+    startY +
+    headerHeight / 2;
 
   doc
-    .circle(badgeCenterX, badgeCenterY, 11)
+    .circle(
+      badgeCenterX,
+      badgeCenterY,
+      11
+    )
     .fill(COLORS.primary);
 
   doc
     .fontSize(9)
     .fillColor(COLORS.white)
-    .text(String(index + 1), badgeCenterX - 11, badgeCenterY - 5, {
-      width: 22,
-      align: "center"
-    });
+    .text(
+      String(index + 1),
+      badgeCenterX - 11,
+      badgeCenterY - 5,
+      {
+        width: 22,
+        align: "center"
+      }
+    );
 
   doc
     .fontSize(11)
     .fillColor(COLORS.dark)
     .text(
-      issue.issueType || "Usability Issue",
-      cardX + 42,
-      startY + 12,
-      { width: cardWidth - 42 - 90 }
+      issueType,
+      cardX + 46,
+      startY + 13,
+      {
+        width:
+          cardWidth -
+          46 -
+          92
+      }
     );
 
   drawSeverityPill(
     doc,
-    issue.severity,
+    severityValue,
     cardX + cardWidth - 12,
-    startY + 11,
-    { width: 78, align: "right" }
+    startY + 13,
+    {
+      width: 78,
+      align: "right"
+    }
   );
 
-  doc.y = startY + headerHeight + 20;
+  doc.y =
+    startY +
+    headerHeight +
+    18;
 
-  // Left accent bar spanning the metadata + body area, drawn after we know
-  // where the card ends (see below) — placeholder color rect drawn now at
-  // the header only keeps things simple and avoids a second height pass.
-  doc
-    .rect(cardX, startY, barWidth, headerHeight)
-    .fill(severity.text);
-
-  // Metadata grid: Frame / Element on one row, Principle / Confidence below
-  const metaColWidth = (cardWidth - 24) / 2;
-  const metaX1 = cardX + 12;
-  const metaX2 = cardX + 12 + metaColWidth + 12;
-  const metaRowY1 = doc.y;
-
-  drawMetaField(
+  drawInfoGrid(
     doc,
-    metaX1,
-    metaRowY1,
-    metaColWidth,
-    "Frame",
-    issue.frameName || "-"
+    "Issue Details",
+    [
+      {
+        label: "Frame",
+        value: frameName
+      },
+      {
+        label: "Layer",
+        value: layerName
+      },
+      {
+        label: "Layer Type",
+        value: nodeType
+      },
+      {
+        label: "Usability Principle",
+        value: principle
+      },
+      {
+        label: "Confidence",
+        value: confidence
+      },
+      {
+        label: "Status",
+        value: status
+      },
+      {
+        label: "First Detected",
+        value: firstDetectedAt
+      },
+      {
+        label: "Last Detected",
+        value: lastDetectedAt
+      },
+      {
+        label: "Resolved At",
+        value: resolvedAt
+      },
+      {
+        label: "Times Detected",
+        value: occurrenceCount
+      }
+    ]
   );
 
-  drawMetaField(
+  drawInfoGrid(
     doc,
-    metaX2,
-    metaRowY1,
-    metaColWidth,
-    "Element",
-    issue.nodeName || "Design element"
+    "Technical Reference",
+    [
+      {
+        label: "Node ID",
+        value: nodeId
+      },
+      {
+        label: "Issue Key",
+        value: issueKey
+      }
+    ],
+    {
+      background: COLORS.white,
+      border: COLORS.border
+    }
   );
 
-  const metaRowY2 = metaRowY1 + 30;
-
-  drawMetaField(
+  drawTextSection(
     doc,
-    metaX1,
-    metaRowY2,
-    metaColWidth,
-    "Usability Principle",
-    issue.principle || "Not specified"
+    "What's wrong?",
+    description
   );
 
-  drawMetaField(
+  drawTextSection(
     doc,
-    metaX2,
-    metaRowY2,
-    metaColWidth,
-    "Confidence",
-    formatConfidence(issue.confidenceScore)
+    "Why ARGUS flagged it",
+    evidenceText,
+    {
+      color: severity.text
+    }
   );
 
-  doc.y = metaRowY2 + 38;
-
-  doc.x = PAGE_MARGIN;
-  drawSectionLabel(doc, "What's wrong?");
-
-  doc.y += 4;
-
-  doc
-    .fontSize(9)
-    .fillColor(COLORS.text)
-    .text(
-      issue.description || "A usability concern was detected.",
-      PAGE_MARGIN + 12,
-      doc.y,
-      { width: cardWidth - 12, lineGap: 2 }
-    );
-
-  doc.moveDown(1.1);
-
-  doc.x = PAGE_MARGIN;
-  drawSectionLabel(doc, "Evidence");
-
-  doc.y += 4;
-
-  doc
-    .fontSize(9)
-    .fillColor(COLORS.text)
-    .text(
-      suggestion?.evidenceSummary ||
-        suggestion?.explanation ||
-        "ARGUS identified a deviation from the expected usability pattern.",
-      PAGE_MARGIN + 12,
-      doc.y,
-      { width: cardWidth - 12, lineGap: 2 }
-    );
-
-  doc.moveDown(1.3);
-
-  const recommendation =
-    suggestion?.detailedSuggestion ||
-    suggestion?.shortSuggestion ||
-    suggestion?.description ||
-    "Review this element and apply a consistent usability pattern.";
-
-  const recommendationTextWidth = cardWidth - 24 - 12;
+  const recommendationTextWidth =
+    cardWidth -
+    40;
 
   const boxHeight =
-    doc.heightOfString(recommendation, {
-      width: recommendationTextWidth,
-      lineGap: 2
-    }) + 54;
+    doc.heightOfString(
+      recommendation,
+      {
+        width: recommendationTextWidth,
+        lineGap: 2
+      }
+    ) + 58;
 
-  ensureSpace(doc, boxHeight + 20);
+  ensureSpace(
+    doc,
+    boxHeight + 24
+  );
 
   const boxY = doc.y;
 
   doc
-    .roundedRect(cardX, boxY, cardWidth, boxHeight, 6)
+    .roundedRect(
+      cardX,
+      boxY,
+      cardWidth,
+      boxHeight,
+      6
+    )
     .fill(COLORS.primaryTint);
 
   doc
-    .rect(cardX, boxY, 3, boxHeight)
+    .rect(
+      cardX,
+      boxY,
+      4,
+      boxHeight
+    )
     .fill(COLORS.primary);
 
   doc
-    .fontSize(9)
+    .fontSize(9.5)
     .fillColor(COLORS.primaryDark)
-    .text("Recommended Improvement", cardX + 16, boxY + 14);
+    .text(
+      "Recommended Improvement",
+      cardX + 16,
+      boxY + 14
+    );
 
   doc
     .fontSize(9)
     .fillColor(COLORS.text)
-    .text(recommendation, cardX + 16, boxY + 31, {
-      width: recommendationTextWidth,
-      lineGap: 2
-    });
+    .text(
+      recommendation,
+      cardX + 16,
+      boxY + 33,
+      {
+        width: recommendationTextWidth,
+        lineGap: 2
+      }
+    );
 
-  doc.y = boxY + boxHeight + 34;
+  doc.y =
+    boxY +
+    boxHeight +
+    16;
+
+  drawInfoGrid(
+    doc,
+    "AI Suggestion Details",
+    [
+      {
+        label: "Priority",
+        value: suggestionPriority
+      },
+      {
+        label: "Fix Type",
+        value: fixType
+      },
+      {
+        label: "Generated By",
+        value: generatedBy
+      },
+      {
+        label: "Generated At",
+        value: generatedAt
+      }
+    ],
+    {
+      background: COLORS.white,
+      border: COLORS.border
+    }
+  );
+
+  doc.moveDown(0.7);
 };
 
 const groupIssuesByFrame = (issues) => {
@@ -847,8 +1658,11 @@ const groupIssuesByFrame = (issues) => {
 
   issues.forEach((issue) => {
     const frameName =
-      issue.frameName ||
-      "Current Design";
+      getValue(
+        issue,
+        ["frameName", "frame_name"],
+        "Current Design"
+      );
 
     if (!groups.has(frameName)) {
       groups.set(frameName, []);
@@ -889,62 +1703,177 @@ const drawActionPlan = (
         low: 2
       };
 
+      const aSeverity =
+        String(
+          getValue(
+            a,
+            ["severity"],
+            "medium"
+          )
+        ).toLowerCase();
+
+      const bSeverity =
+        String(
+          getValue(
+            b,
+            ["severity"],
+            "medium"
+          )
+        ).toLowerCase();
+
       return (
-        (order[a.severity] ?? 3) -
-        (order[b.severity] ?? 3)
+        (order[aSeverity] ?? 3) -
+        (order[bSeverity] ?? 3)
       );
     }
   );
 
-  const contentWidth = doc.page.width - PAGE_MARGIN * 2;
+  const contentWidth =
+    doc.page.width -
+    PAGE_MARGIN * 2;
 
   sorted.forEach((issue, index) => {
-    const suggestion = findSuggestion(issue, suggestions);
-    const style = severityStyle(issue.severity);
+    const suggestion =
+      findSuggestion(
+        issue,
+        suggestions
+      );
+
+    const severity =
+      getValue(
+        issue,
+        ["severity"],
+        "medium"
+      );
+
+    const style =
+      severityStyle(severity);
 
     const text =
-      suggestion?.shortSuggestion ||
-      suggestion?.description ||
-      issue.description ||
+      getValue(
+        suggestion,
+        [
+          "shortSuggestion",
+          "short_suggestion"
+        ],
+        null
+      ) ||
+      getValue(
+        suggestion,
+        ["description"],
+        null
+      ) ||
+      getValue(
+        issue,
+        ["description"],
+        null
+      ) ||
       "Review and resolve this usability issue.";
 
-    const textWidth = contentWidth - 34;
-    const textHeight = doc.heightOfString(text, { width: textWidth, lineGap: 2 });
-    const rowHeight = Math.max(textHeight + 34, 48);
+    const actionFrameName =
+      getValue(
+        issue,
+        ["frameName", "frame_name"],
+        "Current Design"
+      );
 
-    ensureSpace(doc, rowHeight + 6);
+    const actionLayerName =
+      getValue(
+        issue,
+        ["nodeName", "layerName", "node_name"],
+        "Design element"
+      );
+
+    const textWidth =
+      contentWidth -
+      34;
+
+    const textHeight =
+      doc.heightOfString(
+        text,
+        {
+          width: textWidth,
+          lineGap: 2
+        }
+      );
+
+    const badgeText =
+      `${capitalize(severity)} · Frame: ${actionFrameName} · Layer: ${actionLayerName}`;
+
+    const badgeHeight =
+      doc.heightOfString(
+        badgeText.toUpperCase(),
+        {
+          width: textWidth,
+          lineGap: 1
+        }
+      );
+
+    const rowHeight =
+      Math.max(
+        textHeight +
+          badgeHeight +
+          38,
+        58
+      );
+
+    ensureSpace(
+      doc,
+      rowHeight + 6
+    );
 
     const rowY = doc.y;
 
     doc
-      .circle(PAGE_MARGIN + 10, rowY + 11, 10)
+      .circle(
+        PAGE_MARGIN + 10,
+        rowY + 11,
+        10
+      )
       .fill(style.text);
 
     doc
       .fontSize(9)
       .fillColor(COLORS.white)
-      .text(String(index + 1), PAGE_MARGIN, rowY + 6, {
-        width: 20,
-        align: "center"
-      });
+      .text(
+        String(index + 1),
+        PAGE_MARGIN,
+        rowY + 6,
+        {
+          width: 20,
+          align: "center"
+        }
+      );
 
     doc
       .fontSize(9.5)
       .fillColor(COLORS.dark)
-      .text(text, PAGE_MARGIN + 26, rowY, { width: textWidth, lineGap: 2 });
-
-    const badgeText = issue.frameName
-      ? `${capitalize(issue.severity)} · ${issue.frameName}`
-      : capitalize(issue.severity);
+      .text(
+        text,
+        PAGE_MARGIN + 26,
+        rowY,
+        {
+          width: textWidth,
+          lineGap: 2
+        }
+      );
 
     doc
       .fontSize(7.5)
       .fillColor(style.text)
-      .text(badgeText.toUpperCase(), PAGE_MARGIN + 26, rowY + textHeight + 8, {
-        width: textWidth
-      });
+      .text(
+        badgeText.toUpperCase(),
+        PAGE_MARGIN + 26,
+        rowY + textHeight + 8,
+        {
+          width: textWidth,
+          lineGap: 1
+        }
+      );
 
-    doc.y = rowY + rowHeight;
+    doc.y =
+      rowY +
+      rowHeight;
   });
 
   doc.moveDown(1.4);
@@ -953,27 +1882,53 @@ const drawActionPlan = (
 
   const noteY = doc.y;
   const noteWidth = contentWidth;
+
   const noteText =
     "After applying the recommended improvements, run ARGUS again to verify whether the identified usability concerns have been resolved.";
-  const noteHeight = doc.heightOfString(noteText, { width: noteWidth - 24, lineGap: 2 }) + 28;
+
+  const noteHeight =
+    doc.heightOfString(
+      noteText,
+      {
+        width: noteWidth - 24,
+        lineGap: 2
+      }
+    ) + 28;
 
   doc
-    .roundedRect(PAGE_MARGIN, noteY, noteWidth, noteHeight, 6)
-    .fillAndStroke(COLORS.light, COLORS.border);
+    .roundedRect(
+      PAGE_MARGIN,
+      noteY,
+      noteWidth,
+      noteHeight,
+      6
+    )
+    .fillAndStroke(
+      COLORS.light,
+      COLORS.border
+    );
 
   doc
     .fontSize(9)
     .fillColor(COLORS.muted)
-    .text(noteText, PAGE_MARGIN + 12, noteY + 14, {
-      width: noteWidth - 24,
-      lineGap: 2
-    });
+    .text(
+      noteText,
+      PAGE_MARGIN + 12,
+      noteY + 14,
+      {
+        width: noteWidth - 24,
+        lineGap: 2
+      }
+    );
 
-  doc.y = noteY + noteHeight;
+  doc.y =
+    noteY +
+    noteHeight;
 };
 
 const addPageNumbers = (doc) => {
-  const range = doc.bufferedPageRange();
+  const range =
+    doc.bufferedPageRange();
 
   for (
     let i = range.start;
@@ -982,13 +1937,22 @@ const addPageNumbers = (doc) => {
   ) {
     doc.switchToPage(i);
 
-    const footerY = doc.page.height - PAGE_MARGIN - 18;
+    const footerY =
+      doc.page.height -
+      PAGE_MARGIN -
+      18;
 
     doc.save();
 
     doc
-      .moveTo(PAGE_MARGIN, footerY - 8)
-      .lineTo(doc.page.width - PAGE_MARGIN, footerY - 8)
+      .moveTo(
+        PAGE_MARGIN,
+        footerY - 8
+      )
+      .lineTo(
+        doc.page.width - PAGE_MARGIN,
+        footerY - 8
+      )
       .strokeColor(COLORS.border)
       .lineWidth(0.5)
       .stroke();
@@ -1001,16 +1965,25 @@ const addPageNumbers = (doc) => {
         PAGE_MARGIN,
         footerY,
         {
-          width: (doc.page.width - PAGE_MARGIN * 2) / 2,
+          width:
+            (doc.page.width -
+              PAGE_MARGIN * 2) /
+            2,
           lineBreak: false
         }
       )
       .text(
         `Page ${i + 1} of ${range.count}`,
-        PAGE_MARGIN + (doc.page.width - PAGE_MARGIN * 2) / 2,
+        PAGE_MARGIN +
+          (doc.page.width -
+            PAGE_MARGIN * 2) /
+            2,
         footerY,
         {
-          width: (doc.page.width - PAGE_MARGIN * 2) / 2,
+          width:
+            (doc.page.width -
+              PAGE_MARGIN * 2) /
+            2,
           align: "right",
           lineBreak: false
         }
@@ -1032,6 +2005,22 @@ const generateUsabilityReportPdf = ({
 }) => {
   return new Promise(
     (resolve, reject) => {
+      const safeAnalysis =
+        analysis || {};
+
+      const safeSession =
+        session || {};
+
+      const safeIssues =
+        Array.isArray(issues)
+          ? issues
+          : [];
+
+      const safeSuggestions =
+        Array.isArray(suggestions)
+          ? suggestions
+          : [];
+
       const doc =
         new PDFDocument({
           size: "A4",
@@ -1074,35 +2063,19 @@ const generateUsabilityReportPdf = ({
         reject
       );
 
-      /*
-       * ---------------------------------------------------
-       * Extract analyzed frame names
-       * ---------------------------------------------------
-       */
-
       const frameNames =
         getAnalyzedFrameNames(
-          analysis,
-          session,
-          issues
+          safeAnalysis,
+          safeSession,
+          safeIssues
         );
 
-      /*
-       * The cover now receives actual frame names
-       * instead of analysis.frameCount.
-       */
       drawCoverHeader(
         doc,
-        analysis,
-        session,
+        safeAnalysis,
+        safeSession,
         frameNames
       );
-
-      /*
-       * ---------------------------------------------------
-       * Overall issue count
-       * ---------------------------------------------------
-       */
 
       doc
         .fontSize(18)
@@ -1111,9 +2084,9 @@ const generateUsabilityReportPdf = ({
         )
         .text(
           `${
-            issues.length
+            safeIssues.length
           } Usability Issue${
-            issues.length === 1
+            safeIssues.length === 1
               ? ""
               : "s"
           } Detected`,
@@ -1123,31 +2096,43 @@ const generateUsabilityReportPdf = ({
           }
         );
 
-      /*
-       * ---------------------------------------------------
-       * Severity counts
-       * ---------------------------------------------------
-       */
-
       const counts = {
         high:
-          issues.filter(
+          safeIssues.filter(
             (issue) =>
-              issue.severity ===
+              String(
+                getValue(
+                  issue,
+                  ["severity"],
+                  ""
+                )
+              ).toLowerCase() ===
               "high"
           ).length,
 
         medium:
-          issues.filter(
+          safeIssues.filter(
             (issue) =>
-              issue.severity ===
+              String(
+                getValue(
+                  issue,
+                  ["severity"],
+                  ""
+                )
+              ).toLowerCase() ===
               "medium"
           ).length,
 
         low:
-          issues.filter(
+          safeIssues.filter(
             (issue) =>
-              issue.severity ===
+              String(
+                getValue(
+                  issue,
+                  ["severity"],
+                  ""
+                )
+              ).toLowerCase() ===
               "low"
           ).length
       };
@@ -1157,14 +2142,8 @@ const generateUsabilityReportPdf = ({
         counts
       );
 
-      /*
-       * ---------------------------------------------------
-       * No-issue condition
-       * ---------------------------------------------------
-       */
-
       if (
-        issues.length === 0
+        safeIssues.length === 0
       ) {
         doc
           .fontSize(12)
@@ -1179,26 +2158,14 @@ const generateUsabilityReportPdf = ({
             }
           );
       } else {
-        /*
-         * -------------------------------------------------
-         * Issues at a Glance
-         * -------------------------------------------------
-         */
-
         drawOverview(
           doc,
-          issues
+          safeIssues
         );
-
-        /*
-         * -------------------------------------------------
-         * Group detected issues by originating frame
-         * -------------------------------------------------
-         */
 
         const grouped =
           groupIssuesByFrame(
-            issues
+            safeIssues
           );
 
         let issueNumber = 0;
@@ -1249,7 +2216,7 @@ const generateUsabilityReportPdf = ({
               const suggestion =
                 findSuggestion(
                   issue,
-                  suggestions
+                  safeSuggestions
                 );
 
               drawIssueCard(
@@ -1264,24 +2231,12 @@ const generateUsabilityReportPdf = ({
           );
         }
 
-        /*
-         * -------------------------------------------------
-         * Recommended action plan
-         * -------------------------------------------------
-         */
-
         drawActionPlan(
           doc,
-          issues,
-          suggestions
+          safeIssues,
+          safeSuggestions
         );
       }
-
-      /*
-       * ---------------------------------------------------
-       * Footer + page numbering
-       * ---------------------------------------------------
-       */
 
       addPageNumbers(
         doc

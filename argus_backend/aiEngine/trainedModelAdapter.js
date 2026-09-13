@@ -96,7 +96,7 @@ const predictWithTrainedModel = (candidate) => {
     }
 
     const features = buildModelFeatures(candidate);
-    const payload = JSON.stringify({ features });
+    const payload = JSON.stringify( features );
 
     const output = execFileSync(
       getPythonCommand(),

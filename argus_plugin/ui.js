@@ -33,8 +33,8 @@ const monitorStatusText =
   document.getElementById("monitorStatusText");
 const runningBadge =
   document.getElementById("runningBadge");
-const framesScannedValue =
-  document.getElementById("framesScannedValue");
+const nodesScannedValue =
+  document.getElementById("nodesScannedValue");
 const issuesDetectedValue =
   document.getElementById("issuesDetectedValue");
 const lastScanTime =
@@ -342,7 +342,6 @@ function renderDashboardIssues(issues) {
   }
 
   dashboardIssues.innerHTML = issues
-    .slice(0, 5)
     .map(
       issue => `
         <div class="issue-card ${getSeverityClass(
@@ -362,8 +361,8 @@ function renderDashboardIssues(issues) {
             ${escapeHtml(
               issue.frameName,
               "Unknown frame"
-            )}
-            · Layer:
+            )}<br>
+            Layer:
             ${escapeHtml(
               issue.nodeName,
               "Unknown"
@@ -536,33 +535,43 @@ function updateReportSummaryFromAnalysis(
       "<p>No top issues available.</p>";
   } else {
     reportTopIssues.innerHTML =
-      issues
-        .slice(0, 3)
-        .map(
-          issue => `
-            <p>
-              <span>•</span>
-              ${escapeHtml(issue.type)}
-              in
-              ${escapeHtml(
-                issue.frameName,
-                "Unknown frame"
-              )}
-              /
-              ${escapeHtml(
-                issue.nodeName,
-                "Unknown layer"
-              )}
-            </p>
+  issues
+    .map(
+      (issue, index) => `
+        <div class="report-issue-item">
+          <p>
+            <strong>${index + 1}. ${escapeHtml(issue.type)}</strong>
+          </p>
 
-            <p>
-              ${escapeHtml(
-                getDynamicSuggestion(issue)
-              )}
-            </p>
-          `
-        )
-        .join("");
+          <p>
+            Frame:
+            ${escapeHtml(
+              issue.frameName,
+              "Unknown frame"
+            )}<br>
+            Layer:
+            ${escapeHtml(
+              issue.nodeName,
+              "Unknown layer"
+            )}
+          </p>
+
+          <p>
+            Severity:
+            ${escapeHtml(
+              getSeverityLabel(issue.severity)
+            )}
+          </p>
+
+          <p>
+            ${escapeHtml(
+              getDynamicSuggestion(issue)
+            )}
+          </p>
+        </div>
+      `
+    )
+    .join("");
   }
 }
 
@@ -589,20 +598,10 @@ function renderAnalysis(analysis) {
    * Frames Scanned now represents actual frame count,
    * not extracted node count.
    */
-  framesScannedValue.textContent =
-    analysis.frameCount ||
-    (
-      latestDesignData &&
-      latestDesignData.frameCount
-    ) ||
-    (
-      latestDesignData &&
-      Array.isArray(
-        latestDesignData.frames
-      )
-        ? latestDesignData.frames.length
-        : 0
-    );
+  nodesScannedValue.textContent =
+  analysis.nodeCount ||
+  (latestDesignData && latestDesignData.nodeCount) ||
+  0;
 
   issuesDetectedValue.textContent =
     analysis.totalIssues ||
@@ -884,10 +883,10 @@ onmessage = event => {
       );
 
     /*
-     * Show actual number of frames scanned.
+     
      */
-    framesScannedValue.textContent =
-      structuredMetadata.frameCount ||
+    nodesScannedValue.textContent =
+      structuredMetadata.nodeCount ||
       0;
   }
 

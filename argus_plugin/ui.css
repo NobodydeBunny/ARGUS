@@ -628,3 +628,17 @@
   flex-shrink: 0;
 }
 
+.report-issue-item {
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: #dbeeff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.report-issue-item p {
+  margin: 4px 0;
+  font-size: 12px;
+  line-height: 18px;
+}
+
