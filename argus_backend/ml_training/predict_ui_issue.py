@@ -9,19 +9,25 @@ CURRENT_DIR = Path(__file__).resolve().parent
 MODEL_PATH = CURRENT_DIR / "trained_ui_model.pkl"
 COLUMNS_PATH = CURRENT_DIR / "model_columns.json"
 
+
 def safe_number(value):
     try:
         if value is None:
             return 0.0
+
         value = float(value)
+
         if np.isnan(value) or np.isinf(value):
             return 0.0
+
         return value
-    except:
+    except Exception:
         return 0.0
+
 
 def load_model_bundle():
     return joblib.load(MODEL_PATH)
+
 
 def load_feature_columns(model_bundle):
     if "feature_columns" in model_bundle:
@@ -33,59 +39,118 @@ def load_feature_columns(model_bundle):
 
     raise ValueError("Feature columns were not found.")
 
+
 def build_feature_row(input_data, feature_columns):
     row = []
+
     for column in feature_columns:
         row.append(safe_number(input_data.get(column, 0)))
-    return [row]
 
-def main():
+    return row
+
+
+def get_input_payload():
+    if len(sys.argv) >= 2:
+        return json.loads(sys.argv[1])
+
+    raw_input = sys.stdin.read()
+
+    if not raw_input.strip():
+        raise ValueError("Input JSON argument or stdin JSON payload is required.")
+
+    return json.loads(raw_input)
+
+
+def normalize_input_payload(payload):
+    if isinstance(payload, dict) and isinstance(payload.get("batch"), list):
+        return payload["batch"], True
+
+    if isinstance(payload, list):
+        return payload, True
+
+    if isinstance(payload, dict) and isinstance(payload.get("features"), dict):
+        return [payload["features"]], False
+
+    if isinstance(payload, dict):
+        return [payload], False
+
+    raise ValueError("Invalid input format.")
+
+
+def predict_batch(input_rows):
+    model_bundle = load_model_bundle()
+    feature_columns = load_feature_columns(model_bundle)
+
+    issue_model = model_bundle["issue_model"]
+    severity_map = model_bundle.get("severity_map", {})
+    suggestion_map = model_bundle.get("suggestion_map", {})
+
+    X = [
+        build_feature_row(input_data, feature_columns)
+        for input_data in input_rows
+    ]
+
+    issue_labels = issue_model.predict(X)
+
+    confidence_scores = [0.0 for _ in issue_labels]
+    probability_rows = [{} for _ in issue_labels]
+
     try:
-        if len(sys.argv) < 2:
-            raise ValueError("Input JSON argument is required.")
+        model_step = issue_model.named_steps["model"]
 
-        input_data = json.loads(sys.argv[1])
-        if isinstance(input_data, dict) and isinstance(input_data.get("features"), dict):
-            input_data = input_data["features"]
+        if hasattr(model_step, "predict_proba"):
+            probabilities = issue_model.predict_proba(X)
+            classes = model_step.classes_
 
-        model_bundle = load_model_bundle()
-        feature_columns = load_feature_columns(model_bundle)
+            for index, row_probabilities in enumerate(probabilities):
+                probability_rows[index] = {
+                    str(label): float(prob)
+                    for label, prob in zip(classes, row_probabilities)
+                }
 
-        issue_model = model_bundle["issue_model"]
-        severity_map = model_bundle.get("severity_map", {})
-        suggestion_map = model_bundle.get("suggestion_map", {})
+                confidence_scores[index] = float(max(row_probabilities))
+    except Exception:
+        confidence_scores = [0.0 for _ in issue_labels]
+        probability_rows = [{} for _ in issue_labels]
 
-        X = build_feature_row(input_data, feature_columns)
+    model_version = model_bundle.get(
+        "modelVersion",
+        "ARGUS Final Improved Structured Metadata Model"
+    )
 
-        issue_label = issue_model.predict(X)[0]
+    outputs = []
 
-        confidence_score = 0.0
-        probability_details = {}
-
-        if hasattr(issue_model.named_steps["model"], "predict_proba"):
-            probabilities = issue_model.predict_proba(X)[0]
-            classes = issue_model.named_steps["model"].classes_
-
-            probability_details = {
-                str(label): float(prob)
-                for label, prob in zip(classes, probabilities)
-            }
-
-            confidence_score = float(max(probabilities))
-
+    for issue_label, confidence_score, probability_details in zip(
+        issue_labels,
+        confidence_scores,
+        probability_rows
+    ):
         severity = severity_map.get(issue_label, "medium")
         suggestion_category = suggestion_map.get(issue_label, "review_ui_pattern")
 
-        output = {
+        outputs.append({
             "issueLabel": str(issue_label),
             "severity": str(severity),
             "suggestionCategory": str(suggestion_category),
             "confidenceScore": confidence_score,
             "probabilities": probability_details,
-            "modelVersion": model_bundle.get("modelVersion", "ARGUS Final Improved Structured Metadata Model")
-        }
+            "modelVersion": model_version
+        })
 
-        print(json.dumps(output))
+    return outputs
+
+
+def main():
+    try:
+        payload = get_input_payload()
+        input_rows, is_batch = normalize_input_payload(payload)
+
+        predictions = predict_batch(input_rows)
+
+        if is_batch:
+            print(json.dumps(predictions))
+        else:
+            print(json.dumps(predictions[0]))
 
     except Exception as error:
         fallback = {
@@ -97,6 +162,7 @@ def main():
         }
 
         print(json.dumps(fallback))
+
 
 if __name__ == "__main__":
     main()

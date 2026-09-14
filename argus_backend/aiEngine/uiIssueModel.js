@@ -1,4 +1,4 @@
-const { predictWithTrainedModel } = require("./trainedModelAdapter");
+const { predictWithTrainedModel, predictBatchWithTrainedModel } = require("./trainedModelAdapter");
 
 const labelDisplayNames = {
   missing_exit_control: "Missing Exit Control",
@@ -59,15 +59,17 @@ const normalizeIssueLabel = (label) => {
 
 const buildDefaultMessage = (label, candidate) => {
   const displayName = labelDisplayNames[label] || candidate.displayType || label;
-  return candidate.message || `The AI model detected ${displayName.toLowerCase()} in the selected UI metadata.`;
+
+  return candidate.message ||
+    `The AI model detected ${displayName.toLowerCase()} in the selected UI metadata.`;
 };
 
-const classifyCandidate = (candidate) => {
-  const prediction = predictWithTrainedModel(candidate);
+const buildClassifiedIssue = (candidate, prediction) => {
   const predictedLabel = normalizeIssueLabel(prediction.issueLabel);
   const candidateLabel = normalizeIssueLabel(candidate.candidateType || candidate.type);
-  
+
   const knownCandidateLabels = Object.keys(labelDisplayNames);
+
   const issueLabel = knownCandidateLabels.includes(candidateLabel) && candidateLabel !== "no_issue"
     ? candidateLabel
     : predictedLabel;
@@ -79,7 +81,13 @@ const classifyCandidate = (candidate) => {
   const confidenceScore = Number(prediction.confidenceScore || candidate.evidenceScore || 0.5);
   const evidenceScore = Number(candidate.evidenceScore || 0.5);
   const modelAgrees = predictedLabel === issueLabel;
-  const finalConfidence = Number(Math.max(modelAgrees ? confidenceScore : confidenceScore * 0.82, evidenceScore * 0.85).toFixed(3));
+
+  const finalConfidence = Number(
+    Math.max(
+      modelAgrees ? confidenceScore : confidenceScore * 0.82,
+      evidenceScore * 0.85
+    ).toFixed(3)
+  );
 
   if (finalConfidence < 0.42) {
     return null;
@@ -93,10 +101,14 @@ const classifyCandidate = (candidate) => {
     nodeType: candidate.nodeType || "Unknown",
     type: labelDisplayNames[issueLabel] || candidate.displayType || issueLabel,
     issueLabel,
-    severity: prediction.severity === "high" || prediction.severity === "medium" || prediction.severity === "low"
+    severity: prediction.severity === "high" ||
+      prediction.severity === "medium" ||
+      prediction.severity === "low"
       ? prediction.severity
       : "medium",
-    principle: labelPrinciples[issueLabel] || candidate.principle || "Consistency and Standards",
+    principle: labelPrinciples[issueLabel] ||
+      candidate.principle ||
+      "Consistency and Standards",
     message: buildDefaultMessage(issueLabel, candidate),
     recommendationCategory: modelAgrees ? prediction.suggestionCategory : undefined,
     fixType: fixTypeMap[issueLabel] || "general",
@@ -109,9 +121,22 @@ const classifyCandidate = (candidate) => {
   };
 };
 
+const classifyCandidate = (candidate) => {
+  const prediction = predictWithTrainedModel(candidate);
+  return buildClassifiedIssue(candidate, prediction);
+};
+
 const classifyCandidates = (candidates) => {
+  if (!Array.isArray(candidates) || candidates.length === 0) {
+    return [];
+  }
+
+  const predictions = predictBatchWithTrainedModel(candidates);
+
   return candidates
-    .map(classifyCandidate)
+    .map((candidate, index) => {
+      return buildClassifiedIssue(candidate, predictions[index]);
+    })
     .filter(Boolean);
 };
 
