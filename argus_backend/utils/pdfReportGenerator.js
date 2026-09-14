@@ -5,24 +5,26 @@ const fs = require("fs");
 const PAGE_MARGIN = 50;
 
 const COLORS = {
-  primary: "#9a95fc",
-  primaryDark: "#3730A3",
-  primaryTint: "#EEF2FF",
+  primary: "#243B53",
+  primaryDark: "#102A43",
+  primaryTint: "#EAF2F8",
+  accent: "#0F766E",
+
   dark: "#111827",
   text: "#374151",
   muted: "#6B7280",
-  light: "#F9FAFB",
+  light: "#F8FAFC",
 
-  high: "#B91C1C",
-  highBackground: "#FEE2E2",
+  high: "#9F1239",
+  highBackground: "#FFF1F2",
 
-  medium: "#d27d3d",
-  mediumBackground: "#FEF3C7",
+  medium: "#92400E",
+  mediumBackground: "#FFFBEB",
 
-  low: "#047857",
-  lowBackground: "#D1FAE5",
+  low: "#166534",
+  lowBackground: "#F0FDF4",
 
-  border: "#E5E7EB",
+  border: "#E2E8F0",
   white: "#FFFFFF"
 };
 
@@ -32,6 +34,30 @@ const logoPath = path.join(
   "assets",
   "argus_logo.jpeg"
 );
+
+const drawLogo = (doc, x, y, maxWidth, maxHeight) => {
+  if (!fs.existsSync(logoPath)) return 0;
+
+  const image = doc.openImage(logoPath);
+
+  const ratio = Math.min(
+    maxWidth / image.width,
+    maxHeight / image.height
+  );
+
+  const width = image.width * ratio;
+  const height = image.height * ratio;
+
+  const drawX = x + (maxWidth - width) / 2;
+  const drawY = y + (maxHeight - height) / 2;
+
+  doc.image(logoPath, drawX, drawY, {
+    width,
+    height
+  });
+
+  return width;
+};
 
 // ---------------------------------------------------------------------------
 // Formatting helpers
@@ -246,15 +272,7 @@ const ensureSpace = (
 
 const drawPageHeader = (doc) => {
   if (fs.existsSync(logoPath)) {
-    doc.image(
-      logoPath,
-      PAGE_MARGIN,
-      26,
-      {
-        width: 22,
-        height: 22
-      }
-    );
+    drawLogo(doc, PAGE_MARGIN, 22, 24, 31);
   }
 
   doc
@@ -262,7 +280,7 @@ const drawPageHeader = (doc) => {
     .fillColor(COLORS.muted)
     .text(
       "ARGUS  ·  Usability Analysis Report",
-      PAGE_MARGIN + 30,
+      PAGE_MARGIN + 34,
       33
     );
 
@@ -317,7 +335,7 @@ const drawSeverityPill = (
 const drawSectionLabel = (
   doc,
   label,
-  color = COLORS.primary
+  color = COLORS.accent
 ) => {
   const y = doc.y;
 
@@ -500,7 +518,7 @@ const drawTextSection = (
   label,
   text,
   {
-    color = COLORS.primary,
+    color = COLORS.accent,
     indent = 12
   } = {}
 ) => {
@@ -575,23 +593,15 @@ const drawCoverHeader = (
       doc.page.width,
       4
     )
-    .fill(COLORS.primaryDark);
+    .fill(COLORS.accent);
 
   if (fs.existsSync(logoPath)) {
-    doc.image(
-      logoPath,
-      PAGE_MARGIN,
-      42,
-      {
-        width: 46,
-        height: 46
-      }
-    );
+    drawLogo(doc, PAGE_MARGIN, 32, 54, 70);
   }
 
   const textX =
     fs.existsSync(logoPath)
-      ? PAGE_MARGIN + 60
+      ? PAGE_MARGIN + 72
       : PAGE_MARGIN;
 
   doc
@@ -614,7 +624,7 @@ const drawCoverHeader = (
 
   doc
     .fontSize(9)
-    .fillColor("#C7D2FE")
+    .fillColor("#CBD5E1")
     .text(
       "Clear usability insights and actionable design recommendations",
       textX,
@@ -1430,7 +1440,7 @@ const drawIssueCard = (
       badgeCenterY,
       11
     )
-    .fill(COLORS.primary);
+    .fill(COLORS.accent);
 
   doc
     .fontSize(9)
@@ -1594,7 +1604,7 @@ const drawIssueCard = (
       4,
       boxHeight
     )
-    .fill(COLORS.primary);
+    .fill(COLORS.accent);
 
   doc
     .fontSize(9.5)

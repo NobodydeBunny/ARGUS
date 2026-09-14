@@ -5,7 +5,13 @@ require("dotenv").config();
 const sequelize = require("./database");
 require("./databaseSchemas");
 
+const {
+  setDatabaseStatus,
+  getDatabaseStatus
+} = require("./database/dbStatus");
+
 const app = express();
+
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.set("json spaces", 2);
@@ -16,12 +22,16 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/health", async (req, res) => {
-  try {
-    await sequelize.authenticate();
-    res.status(200).json({ status: "ok", database: "Supabase PostgreSQL" });
-  } catch (error) {
-    res.status(503).json({ status: "error", database: "unavailable", error: error.message });
-  }
+  const databaseStatus = getDatabaseStatus();
+
+  res.status(200).json({
+    status: "running",
+    backend: "Argus Backend",
+    database: databaseStatus.databaseAvailable ? "connected" : "unavailable",
+    persistenceEnabled: databaseStatus.databaseAvailable,
+    lastDatabaseError: databaseStatus.lastDatabaseError,
+    lastCheckedAt: databaseStatus.lastCheckedAt
+  });
 });
 
 app.use("/api/analysis", require("./routes/analysisRoutes"));
@@ -31,23 +41,40 @@ app.use("/api/suggestions", require("./routes/suggestionRoutes"));
 
 const PORT = process.env.PORT || 5000;
 
+const checkDatabaseConnection = async () => {
+  try {
+    await sequelize.authenticate();
+    setDatabaseStatus(true);
+    console.log("Database connection restored.");
+  } catch (error) {
+    setDatabaseStatus(false, error);
+    console.log("Database still unavailable:", error.message);
+  }
+};
+
 const startServer = async () => {
   try {
     await sequelize.authenticate();
+    setDatabaseStatus(true);
+
     console.log("Supabase PostgreSQL connected");
 
-    // In development this verifies that Sequelize models match the SQL schema.
-    // Keep DB_SYNC=false for the shared Supabase project after running supabase/schema.sql.
     if (String(process.env.DB_SYNC).toLowerCase() === "true") {
       await sequelize.sync({ alter: false });
       console.log("Database models synchronized");
     }
-
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   } catch (error) {
+    setDatabaseStatus(false, error);
+
     console.error("Database connection failed:", error.message);
-    process.exit(1);
+    console.log("Backend will continue running without database persistence.");
   }
+
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
 };
+
+setInterval(checkDatabaseConnection, 30000);
 
 startServer();

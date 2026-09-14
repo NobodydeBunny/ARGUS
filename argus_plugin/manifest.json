@@ -4,5 +4,15 @@
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",
-  "editorType": ["figma"]
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": [
+      "http://localhost:5000"
+    ],
+    "devAllowedDomains": [
+      "http://localhost:5000"
+    ],
+    "reasoning": "Argus sends selected Figma design metadata to the local backend for usability analysis during development."
+  }
 }
