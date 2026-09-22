@@ -69,6 +69,10 @@ The API paths are preserved:
 
 The Figma plugin can continue calling the same localhost backend URLs.
 
+The Figma plugin cannot start a Node.js process itself because Figma plugins run
+in a sandbox. Start the backend before opening the plugin, or use the health
+check on the plugin's Start button to verify that it is available.
+
 ## 7. Verify records in Supabase
 After running an analysis, open **Table Editor** and confirm records appear in:
 
