@@ -1,6 +1,7 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../database");
 
+// A session groups repeated scans of the same design.
 const AnalysisSession = sequelize.define("AnalysisSession", {
   _id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true, field: "id" },
   designName: { type: DataTypes.STRING, allowNull: false, field: "design_name" },

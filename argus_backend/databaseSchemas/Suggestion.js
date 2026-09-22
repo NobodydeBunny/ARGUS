@@ -1,6 +1,7 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../database");
 
+// Advice generated for one detected issue.
 const Suggestion = sequelize.define("Suggestion", {
   _id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true, field: "id" },
   sessionId: { type: DataTypes.UUID, allowNull: false, field: "session_id" },

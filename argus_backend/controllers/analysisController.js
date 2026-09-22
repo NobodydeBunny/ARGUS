@@ -8,6 +8,7 @@ const MODEL_VERSION = "2.0";
 const ANALYSIS_METHOD = "trained_metadata_model_with_dynamic_feedback";
 const FEEDBACK_GENERATOR = "Argus Dynamic AI Feedback Generator v1.0";
 
+// Give each issue a simple idea of what kind of fix it may need.
 const getFixType = (issue) => {
   if (issue.fixType) return issue.fixType;
 
@@ -33,6 +34,7 @@ const createIssueKey = (issue) => {
 };
 
 const buildSuggestionPayload = ({ session, analysis, detectedIssue, issue }) => {
+  // Keep the suggestion linked to the same session, analysis, and issue.
   const detailedSuggestion =
     issue.detailedRecommendation ||
     issue.detailedSuggestion ||
@@ -97,6 +99,7 @@ const buildTemporaryAnalysisResult = ({
   issues,
   databaseStatus
 }) => {
+  // Analysis can still finish when the database is having a bad day.
   const completedAt = new Date();
   const temporaryAnalysisId = `temp-analysis-${Date.now()}`;
   const temporarySessionId = req.body.sessionId || `temp-session-${Date.now()}`;
@@ -128,6 +131,7 @@ const buildTemporaryAnalysisResult = ({
 };
 
 const createAnalysis = async (req, res) => {
+  // This is where the selected Figma design is analyzed and saved.
   let existingSession = null;
 
   try {
@@ -148,11 +152,7 @@ const createAnalysis = async (req, res) => {
     const issues = analyzeDesign(req.body);
     const databaseStatus = getDatabaseStatus();
 
-    /*
-      Important fix:
-      If Supabase/PostgreSQL is unavailable, do not stop analysis.
-      Return temporary results without saving to the database.
-    */
+    // If the database is unavailable, return the results without saving them.
     if (!databaseStatus.databaseAvailable) {
       const temporaryResult = buildTemporaryAnalysisResult({
         req,
@@ -221,6 +221,7 @@ const createAnalysis = async (req, res) => {
         transaction
       });
 
+      // Mark issues that disappeared from the latest scan as resolved.
       for (const oldIssue of openIssues) {
         if (!currentIssueKeys.includes(oldIssue.issueKey)) {
           await oldIssue.update({
@@ -232,6 +233,7 @@ const createAnalysis = async (req, res) => {
 
       const issueSnapshots = [];
 
+      // Update old findings or create new ones, then keep their suggestions close.
       for (const issue of issues) {
         const issueKey = createIssueKey(issue);
 
@@ -368,6 +370,7 @@ const createAnalysis = async (req, res) => {
 };
 
 const getAnalyses = async (req, res) => {
+  // Return saved analyses for the history screens.
   try {
     const databaseStatus = getDatabaseStatus();
 
@@ -394,6 +397,7 @@ const getAnalyses = async (req, res) => {
 };
 
 const getAnalysisById = async (req, res) => {
+  // Return one saved analysis when the UI asks for it.
   try {
     const databaseStatus = getDatabaseStatus();
 
@@ -424,6 +428,7 @@ const getAnalysisById = async (req, res) => {
 };
 
 const deleteAnalysisById = async (req, res) => {
+  // Remove an analysis only when the database is available.
   try {
     const databaseStatus = getDatabaseStatus();
 

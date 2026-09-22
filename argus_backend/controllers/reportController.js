@@ -1,5 +1,7 @@
 const { Analysis, AnalysisSession, DetectedIssue, Suggestion, Report } = require("../databaseSchemas");
 const { generateUsabilityReportPdf } = require("../utils/pdfReportGenerator");
+
+// Collect everything needed to show a complete report.
 const buildReportData = async (analysisId) => {
   const analysis = await Analysis.findByPk(analysisId);
   if (!analysis) return null;
@@ -25,6 +27,7 @@ const buildReportData = async (analysisId) => {
 };
 
 const populateReport = async (report) => {
+  // Add the related session and analysis so the response is easier to use.
   if (!report) return null;
   const json = report.toJSON();
   const [session, analysis] = await Promise.all([
@@ -37,6 +40,7 @@ const populateReport = async (report) => {
 };
 
 const generateReport = async (req, res) => {
+  // Save a report using the latest analysis findings and suggestions.
   try {
     const reportData = await buildReportData(req.body.analysisId);
     if (!reportData) return res.status(404).json({ message: "Analysis or session not found" });
@@ -79,6 +83,7 @@ const generateReport = async (req, res) => {
 };
 
 const getReports = async (req, res) => {
+  // Return the newest reports first.
   try {
     const reports = await Report.findAll({ order: [["createdAt", "DESC"]] });
     const populated = await Promise.all(reports.map(populateReport));
@@ -89,6 +94,7 @@ const getReports = async (req, res) => {
 };
 
 const getReportById = async (req, res) => {
+  // Look up one report and include its related records.
   try {
     const report = await Report.findByPk(req.params.id);
     if (!report) return res.status(404).json({ message: "Report not found" });
@@ -99,6 +105,7 @@ const getReportById = async (req, res) => {
 };
 
 const deleteReportById = async (req, res) => {
+  // Remove a saved report from the database.
   try {
     const deleted = await Report.destroy({ where: { _id: req.params.id } });
     if (!deleted) return res.status(404).json({ message: "Report not found" });
@@ -109,6 +116,7 @@ const deleteReportById = async (req, res) => {
 };
 
 const exportReportById = async (req, res) => {
+  // Build the PDF, remember the export, and send it back to the user.
   try {
     const report =
       await Report.findByPk(
@@ -324,6 +332,7 @@ const exportReportById = async (req, res) => {
 };
 
 const cancelReportExport = async (req, res) => {
+  // Keep a small record when the user cancels an export.
   try {
     const report = await Report.findByPk(req.params.id);
     if (!report) return res.status(404).json({ message: "Report not found" });

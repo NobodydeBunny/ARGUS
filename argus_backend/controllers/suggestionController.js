@@ -1,5 +1,6 @@
 const { Suggestion, DetectedIssue } = require("../databaseSchemas");
 
+// Return suggestions, optionally narrowed to one session or issue.
 const getSuggestions = async (req, res) => {
   try {
     const where = {};

@@ -4,6 +4,7 @@ const DetectedIssue = require("./DetectedIssue");
 const Suggestion = require("./Suggestion");
 const Report = require("./Report");
 
+// These links let one session keep track of its analyses, issues, suggestions, and reports.
 AnalysisSession.hasMany(Analysis, { foreignKey: "sessionId", as: "analyses", onDelete: "CASCADE" });
 Analysis.belongsTo(AnalysisSession, { foreignKey: "sessionId", as: "session" });
 
