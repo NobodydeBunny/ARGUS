@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const { PROJECT_FEATURE_COLUMNS, normalizeFeatureVector } = require("./featureExtractor");
 
+// Keep the model details in one place so changing the model is less painful.
 const MODEL_VERSION = "Random Forest UI Issue Classifier v2.0";
 
 const getPythonCommand = () => process.platform === "win32" ? "py" : "python3";
@@ -17,6 +18,7 @@ const getModelPath = () => {
   return path.join(getBackendRoot(), "ml_training", "trained_ui_model.pkl");
 };
 
+// Work out which analysis group a finding belongs to.
 const inferModuleName = (candidate) => {
   if (candidate.moduleName) return candidate.moduleName;
 
@@ -38,6 +40,7 @@ const inferModuleName = (candidate) => {
   return "layout";
 };
 
+// Pick the useful numbers from a finding before sending it to Python.
 const buildModelFeatures = (candidate) => {
   const moduleName = inferModuleName(candidate);
 
@@ -76,6 +79,7 @@ const buildModelFeatures = (candidate) => {
   return normalizeFeatureVector(base);
 };
 
+// If the Python model is unavailable, use the finding's own sensible fallback.
 const fallbackPrediction = (candidate) => {
   const label = candidate.candidateType || candidate.type || "review_ui_pattern";
 
@@ -118,6 +122,7 @@ const fallbackPrediction = (candidate) => {
   };
 };
 
+// Check once before trying to call the trained model.
 const canUsePythonModel = () => {
   const scriptPath = getPredictScriptPath();
   const modelPath = getModelPath();
@@ -125,6 +130,7 @@ const canUsePythonModel = () => {
   return fs.existsSync(scriptPath) && fs.existsSync(modelPath);
 };
 
+// Make sure model output has the shape the rest of the backend expects.
 const normalizePrediction = (prediction, candidate) => {
   if (!prediction || prediction.error) {
     return fallbackPrediction(candidate);
@@ -139,6 +145,7 @@ const normalizePrediction = (prediction, candidate) => {
   };
 };
 
+// Predict several findings in one go when possible.
 const predictBatchWithTrainedModel = (candidates) => {
   if (!Array.isArray(candidates) || candidates.length === 0) {
     return [];
@@ -183,6 +190,7 @@ const predictBatchWithTrainedModel = (candidates) => {
   }
 };
 
+// Predict one finding, with a fallback if the model cannot be used.
 const predictWithTrainedModel = (candidate) => {
   const predictions = predictBatchWithTrainedModel([candidate]);
   return predictions[0] || fallbackPrediction(candidate);

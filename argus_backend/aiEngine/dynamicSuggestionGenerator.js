@@ -1,3 +1,4 @@
+// Small helpers keep the feedback text tidy and forgiving of missing data.
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 const safeText = (value, fallback = "this element") => {
@@ -75,6 +76,7 @@ const namedColors = [
   { name: "gray", rgb: { r: 130, g: 130, b: 130 } }
 ];
 
+// Turn a raw color into a name people can understand in a suggestion.
 const getReadableColorName = (color) => {
   const rgb = normalizeRgb(color);
   const hex = rgbToHex(color);
@@ -109,6 +111,7 @@ const createFeedback = ({ shortSuggestion, detailedSuggestion, explanation, evid
   recommendation: detailedSuggestion || shortSuggestion
 });
 
+// The following builders turn each issue type into plain design advice.
 const buildColorInconsistencyFeedback = (issue) => {
   const evidence = issue.evidence || {};
   const nodeName = safeText(issue.nodeName);
@@ -315,6 +318,7 @@ const normalizeLabel = (issue) => {
   return String(label).toLowerCase().replace(/\s+/g, "_");
 };
 
+// Choose the right kind of advice for the issue we found.
 const generateDynamicSuggestion = (issue) => {
   const label = normalizeLabel(issue);
 
@@ -382,6 +386,7 @@ const generateDynamicSuggestion = (issue) => {
   };
 };
 
+// Add suggestions to all findings in the same shape.
 const generateDynamicSuggestions = (issues) => issues.map(generateDynamicSuggestion);
 
 module.exports = {
