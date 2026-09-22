@@ -388,6 +388,37 @@ figma.on("currentpagechange", () => {
 });
 
 figma.ui.onmessage = async (msg) => {
+  if (msg.type === "check-backend") {
+    try {
+      const response = await fetch(`${API_BASE_URL}/health`);
+      const health = await response.json();
+
+      if (!response.ok || health.status !== "running") {
+        figma.ui.postMessage({
+          type: "backend-status",
+          connected: false,
+          message: "The Argus backend is not ready. Start it from the argus_backend folder with npm run dev, then try Start again."
+        });
+
+        return;
+      }
+
+      figma.ui.postMessage({
+        type: "backend-status",
+        connected: true,
+        message: "Connected to the Argus backend."
+      });
+    } catch (error) {
+      figma.ui.postMessage({
+        type: "backend-status",
+        connected: false,
+        message: "Could not connect to the Argus backend. Start it from the argus_backend folder with npm run dev, then try Start again."
+      });
+    }
+
+    return;
+  }
+
   if (msg.type === "analyze-selection") {
     runAnalysis("manual");
   }

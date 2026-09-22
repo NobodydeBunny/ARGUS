@@ -79,6 +79,9 @@ let isScanning = false;
 let latestAnalysis = null;
 let latestReport = null;
 let latestDesignData = null;
+let backendConnected = false;
+let backendCheckTimer = null;
+const BACKEND_CHECK_INTERVAL_MS = 3000;
 
 
 /* =========================================================
@@ -95,7 +98,7 @@ function showPage(pageName) {
 
 
 /* =========================================================
-   PLUGIN COMMUNICATION
+   PLUGIN COMMUNICATION.
    ========================================================= */
 
 function sendPluginMessage(message) {
@@ -161,9 +164,43 @@ function updateScanningUi() {
     !isScanning
   );
 
-  monitorStatusText.textContent = isScanning
-    ? "● MONITORING ACTIVE"
-    : "● READY";
+  monitorStatusText.textContent = !backendConnected
+    ? "● BACKEND NOT CONNECTED"
+    : isScanning
+      ? "● MONITORING ACTIVE"
+      : "● READY";
+
+  monitorStatusText.classList.toggle(
+    "status-active",
+    backendConnected
+  );
+
+  monitorStatusText.classList.toggle(
+    "status-error",
+    !backendConnected
+  );
+
+}
+
+
+function checkBackendConnection() {
+  sendPluginMessage({
+    type: "check-backend"
+  });
+}
+
+
+function startBackendPolling() {
+  if (backendCheckTimer) {
+    return;
+  }
+
+  checkBackendConnection();
+
+  backendCheckTimer = setInterval(
+    checkBackendConnection,
+    BACKEND_CHECK_INTERVAL_MS
+  );
 }
 
 
@@ -646,9 +683,14 @@ function renderAnalysis(analysis) {
 startBtn.onclick = () => {
   showPage("dashboard");
 
+  backendConnected = false;
+  updateScanningUi();
+
   setStatus(
-    "Select one or more Figma layers, then run analysis."
+    "Backend not connected. Retrying automatically..."
   );
+
+  startBackendPolling();
 };
 
 
@@ -988,6 +1030,34 @@ onmessage = event => {
         "hide"
       );
     }
+  }
+
+
+  /*
+   * Backend connection status
+   */
+  if (
+    msg.type ===
+    "backend-status"
+  ) {
+    if (!msg.connected) {
+      backendConnected = false;
+      updateScanningUi();
+
+      setStatus(
+        "Backend not connected. Retrying automatically...",
+        true
+      );
+
+      return;
+    }
+
+    backendConnected = true;
+    updateScanningUi();
+
+    setStatus(
+      "Connected to the Argus backend. Select one or more Figma layers, then run analysis."
+    );
   }
 
 
