@@ -1,3 +1,4 @@
+// Open the plugin UI using the generated ui.html file.
 figma.showUI(__html__, {
   width: 375,
   height: 700
@@ -6,6 +7,7 @@ figma.showUI(__html__, {
 const MAX_ANALYSIS_NODES = 1000;
 const API_BASE_URL = "http://localhost:5000/api";
 
+// Runtime state for scanning, analysis, and backend sessions.
 let realtimeScanEnabled = false;
 let scanTimer = null;
 let listeningPage = null;
@@ -20,6 +22,7 @@ function sendStatus(message) {
   });
 }
 
+// Prevent the plugin from closing while analysis or report generation is active.
 function hasCriticalOperation() {
   return isAnalyzing || isGeneratingReport;
 }
@@ -251,6 +254,7 @@ function collectFrameData(scopeNodes) {
   });
 }
 
+// Collect the current Figma design and send it to the backend for analysis.
 async function runAnalysis(reason) {
   if (isAnalyzing) {
     sendStatus("Analysis is already running. Please wait.");
@@ -340,6 +344,7 @@ async function runAnalysis(reason) {
   }
 }
 
+// Debounce automatic scans triggered by Figma design changes.
 function scheduleRealtimeScan(reason) {
   if (!realtimeScanEnabled) {
     return;
@@ -369,6 +374,7 @@ function bindPageListener() {
   listeningPage.on("nodechange", handleNodeChange);
 }
 
+// Stop timers and page listeners before the plugin closes.
 function stopPluginProcesses() {
   realtimeScanEnabled = false;
   clearTimeout(scanTimer);
@@ -387,6 +393,7 @@ figma.on("currentpagechange", () => {
   scheduleRealtimeScan("page-change");
 });
 
+// Handle commands sent from the plugin UI.
 figma.ui.onmessage = async (msg) => {
   if (msg.type === "check-backend") {
     try {
