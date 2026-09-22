@@ -7,6 +7,7 @@ const {
 
 const router = express.Router();
 
+// A session keeps the scans made during one run of the plugin together.
 router.get("/", getSessions);
 router.get("/:id", getSessionById);
 router.patch("/:id/terminate", terminateSession);
