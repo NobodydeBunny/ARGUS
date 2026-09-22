@@ -1,6 +1,7 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../database");
 
+// One saved analysis, including the design data and the issues found in it.
 const Analysis = sequelize.define("Analysis", {
   _id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true, field: "id" },
   sessionId: { type: DataTypes.UUID, allowNull: false, field: "session_id" },

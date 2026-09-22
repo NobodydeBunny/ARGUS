@@ -1,5 +1,6 @@
 const { Sequelize } = require("sequelize");
 
+// The backend needs this connection before it can save analysis results.
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not configured. Add the Supabase PostgreSQL connection string to argus_backend/.env");
 }

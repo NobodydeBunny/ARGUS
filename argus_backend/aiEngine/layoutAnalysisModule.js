@@ -24,7 +24,7 @@ const getPrimaryContainer = (nodes) => {
     return nodes[0] || null;
   }
 
-  // Using the largest frame as the main screen/container for density and layout checks.
+  // Treat the biggest frame as the main screen when checking the layout.
   return frames.sort((first, second) => {
     const firstArea = numberOrZero(first.width) * numberOrZero(first.height);
     const secondArea = numberOrZero(second.width) * numberOrZero(second.height);
@@ -58,6 +58,7 @@ const getMostDifferentNumber = (items, valueGetter, expectedValue) => {
 };
 
 const detectModalWithoutExit = (nodes, globalFeatures) => {
+  // A popup without a way out can leave a user feeling stuck.
   const candidates = [];
   const modalNodes = nodes.filter(node => isModalLike(node, nodes));
 
@@ -95,6 +96,7 @@ const detectModalWithoutExit = (nodes, globalFeatures) => {
   return candidates;
 };
 
+// Look for one element whose spacing feels noticeably different from its peers.
 const detectSpacingInconsistency = (nodes, globalFeatures) => {
   const candidates = [];
   const container = getPrimaryContainer(nodes);
@@ -158,6 +160,7 @@ const detectSpacingInconsistency = (nodes, globalFeatures) => {
   return candidates;
 };
 
+// Buttons that look unrelated may make the interface feel inconsistent.
 const detectButtonShapeInconsistency = (nodes, globalFeatures) => {
   const candidates = [];
   const buttons = nodes.filter(isButtonLike);
@@ -224,6 +227,7 @@ const detectButtonShapeInconsistency = (nodes, globalFeatures) => {
   return candidates;
 };
 
+// Check whether items that should line up have wandered away from the group.
 const detectAlignmentInconsistency = (nodes, globalFeatures) => {
   const candidates = [];
   const alignmentStats = calculateAlignmentStats(nodes);
@@ -265,6 +269,7 @@ const detectAlignmentInconsistency = (nodes, globalFeatures) => {
   return candidates;
 };
 
+// Too many things packed into one screen can make it hard to know where to start.
 const detectOverloadedScreen = (nodes, globalFeatures) => {
   const candidates = [];
   const container = getPrimaryContainer(nodes);
@@ -315,6 +320,7 @@ const detectOverloadedScreen = (nodes, globalFeatures) => {
   return candidates;
 };
 
+// Run all of the layout checks for one frame.
 const analyzeLayoutPatterns = (designData) => {
   const nodes = getNodes(designData);
   const globalFeatures = buildGlobalFeatures(nodes, "layout");

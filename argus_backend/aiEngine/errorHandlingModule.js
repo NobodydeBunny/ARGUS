@@ -27,6 +27,7 @@ const getPrimaryFrame = (nodes) => {
   })[0];
 };
 
+// Find out whether the user has a nearby way to leave this flow.
 const hasRelatedExitControl = (target, nodes) => {
   const children = getChildren(target, nodes);
   const relatedNodes = [target, ...children];
@@ -35,11 +36,12 @@ const hasRelatedExitControl = (target, nodes) => {
 };
 
 const detectMissingBackCancelClose = (nodes, globalFeatures) => {
+  // Start with the simple question: can the user get back out?
   const candidates = [];
   const modalNodes = nodes.filter(node => isModalLike(node, nodes));
   const primaryFrame = getPrimaryFrame(nodes);
 
-  // If no modal exists, check the selected main frame.
+  // If there is no popup, check the selected main screen instead.
   const targets = modalNodes.length > 0 ? modalNodes : (primaryFrame ? [primaryFrame] : []);
 
   targets.forEach((target) => {
@@ -74,6 +76,7 @@ const detectMissingBackCancelClose = (nodes, globalFeatures) => {
 };
 
 const detectDestructiveWithoutUndo = (nodes, globalFeatures) => {
+  // Risky actions should give people a way to recover from a mistake.
   const candidates = [];
   const destructiveNodes = nodes.filter(isDestructiveNode);
   const hasUndoOption = nodes.some(isUndoNode);
@@ -108,6 +111,7 @@ const detectDestructiveWithoutUndo = (nodes, globalFeatures) => {
 };
 
 const detectIrreversibleWithoutConfirmation = (nodes, globalFeatures) => {
+  // A final warning is useful before an action that cannot be undone.
   const candidates = [];
   const destructiveNodes = nodes.filter(isDestructiveNode);
   const confirmationNodes = nodes.filter(isConfirmationNode);
@@ -143,6 +147,7 @@ const detectIrreversibleWithoutConfirmation = (nodes, globalFeatures) => {
   return candidates;
 };
 
+// Run the checks related to leaving screens and recovering from mistakes.
 const analyzeErrorHandlingPatterns = (designData) => {
   const nodes = getNodes(designData);
   const globalFeatures = buildGlobalFeatures(nodes, "error");

@@ -1,6 +1,7 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../database");
 
+// The saved version of a report that can later be viewed or exported.
 const Report = sequelize.define("Report", {
   _id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true, field: "id" },
   sessionId: { type: DataTypes.UUID, allowNull: false, field: "session_id" },

@@ -1,6 +1,7 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../database");
 
+// A finding that Argus has seen while checking a design.
 const DetectedIssue = sequelize.define("DetectedIssue", {
   _id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true, field: "id" },
   sessionId: { type: DataTypes.UUID, allowNull: false, field: "session_id" },

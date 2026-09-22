@@ -1,5 +1,6 @@
 const { predictWithTrainedModel, predictBatchWithTrainedModel } = require("./trainedModelAdapter");
 
+// These names keep the model output readable in the plugin.
 const labelDisplayNames = {
   missing_exit_control: "Missing Exit Control",
   spacing_inconsistency: "Spacing Inconsistency",
@@ -57,6 +58,7 @@ const normalizeIssueLabel = (label) => {
   return map[label] || label;
 };
 
+// Use the checker message when it has one, otherwise make a safe fallback.
 const buildDefaultMessage = (label, candidate) => {
   const displayName = labelDisplayNames[label] || candidate.displayType || label;
 
@@ -121,11 +123,13 @@ const buildClassifiedIssue = (candidate, prediction) => {
   };
 };
 
+// Give one possible finding a final issue label and severity.
 const classifyCandidate = (candidate) => {
   const prediction = predictWithTrainedModel(candidate);
   return buildClassifiedIssue(candidate, prediction);
 };
 
+// Classify a group of findings together so the model can work in batches.
 const classifyCandidates = (candidates) => {
   if (!Array.isArray(candidates) || candidates.length === 0) {
     return [];

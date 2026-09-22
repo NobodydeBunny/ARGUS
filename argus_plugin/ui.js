@@ -1,3 +1,4 @@
+// References to the plugin's four UI pages.
 const pages = {
   welcome: document.getElementById("welcomePage"),
   dashboard: document.getElementById("dashboardPage"),
@@ -73,6 +74,7 @@ const reportTopIssues =
 const reportStatusOutput =
   document.getElementById("reportStatusOutput");
 
+// UI state shared by the dashboard, results, and report pages.
 let currentAnalysisId = null;
 let currentReportId = null;
 let isScanning = false;
@@ -88,6 +90,7 @@ const BACKEND_CHECK_INTERVAL_MS = 3000;
    PAGE NAVIGATION
    ========================================================= */
 
+// Display one page and hide the others.
 function showPage(pageName) {
   Object.values(pages).forEach(page =>
     page.classList.remove("active")
@@ -101,6 +104,7 @@ function showPage(pageName) {
    PLUGIN COMMUNICATION.
    ========================================================= */
 
+// Send a command from the UI iframe to code.js.
 function sendPluginMessage(message) {
   parent.postMessage(
     {
@@ -115,6 +119,7 @@ function sendPluginMessage(message) {
    STATUS
    ========================================================= */
 
+// Update the status text shown on the dashboard and report pages.
 function setStatus(message, isError = false) {
   statusOutput.textContent = message;
   statusOutput.classList.toggle("error", isError);
@@ -190,6 +195,7 @@ function checkBackendConnection() {
 }
 
 
+// Keep checking until the backend is available.
 function startBackendPolling() {
   if (backendCheckTimer) {
     return;
@@ -680,6 +686,7 @@ function renderAnalysis(analysis) {
    BUTTON EVENTS
    ========================================================= */
 
+// Start opens the dashboard and begins backend health checks.
 startBtn.onclick = () => {
   showPage("dashboard");
 
@@ -890,6 +897,7 @@ cancelExportBtn.onclick = () => {
    MESSAGES FROM FIGMA PLUGIN
    ========================================================= */
 
+// Receive analysis, report, scan, and backend messages from code.js.
 onmessage = event => {
   const msg =
     event.data.pluginMessage;

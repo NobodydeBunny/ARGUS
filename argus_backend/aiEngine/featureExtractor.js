@@ -1,3 +1,4 @@
+// These word lists help the analyzer understand what a node is probably for.
 const EXIT_KEYWORDS = [
   "close", "cancel", "back", "exit", "dismiss", "x", "return", "go back"
 ];
@@ -48,6 +49,7 @@ const PROJECT_FEATURE_COLUMNS = [
   "module_layout", "module_color", "module_error", "module_normal"
 ];
 
+// Keep text in one predictable shape before comparing it.
 const normalizeText = (value) => String(value || "").toLowerCase().trim();
 
 const getNodeLabel = (node) => normalizeText(`${node.name || ""} ${node.text || ""} ${node.iconName || ""}`);
@@ -62,6 +64,7 @@ const numberOrZero = (value) => {
   return Number.isFinite(number) ? number : 0;
 };
 
+// Only use visible nodes because hidden layers should not affect the review.
 const getNodes = (designData) => Array.isArray(designData.nodes) ? designData.nodes.filter(node => node && node.visible !== false) : [];
 
 const getChildren = (node, nodes) => nodes.filter(child => child.parentId === node.nodeId);
@@ -262,6 +265,7 @@ const getMainFrame = (nodes) => {
   return frames.sort((a, b) => (numberOrZero(b.width) * numberOrZero(b.height)) - (numberOrZero(a.width) * numberOrZero(a.height)))[0];
 };
 
+// Gather the basic numbers shared by the different analysis checks.
 const buildGlobalFeatures = (nodes, moduleName = "normal") => {
   const visibleNodes = nodes.filter(node => node.visible !== false);
   const mainFrame = getMainFrame(visibleNodes) || visibleNodes[0] || {};
@@ -392,6 +396,7 @@ const normalizeFeatureVector = (features) => {
   return vector;
 };
 
+// A candidate is a possible issue before the model gives it a final label.
 const createCandidate = ({
   moduleName,
   candidateType,
