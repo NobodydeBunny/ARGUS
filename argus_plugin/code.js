@@ -1,4 +1,3 @@
-// Open the plugin UI using the generated ui.html file.
 figma.showUI(__html__, {
   width: 375,
   height: 700
@@ -7,7 +6,6 @@ figma.showUI(__html__, {
 const MAX_ANALYSIS_NODES = 1000;
 const API_BASE_URL = "http://localhost:5000/api";
 
-// Runtime state for scanning, analysis, and backend sessions.
 let realtimeScanEnabled = false;
 let scanTimer = null;
 let listeningPage = null;
@@ -22,7 +20,39 @@ function sendStatus(message) {
   });
 }
 
-// Prevent the plugin from closing while analysis or report generation is active.
+async function checkBackendHealth() {
+  let timeoutId;
+
+  try {
+    const timeout = new Promise((resolve, reject) => {
+      timeoutId = setTimeout(
+        () => reject(new Error("Backend health check timed out.")),
+        3000
+      );
+    });
+    const response = await Promise.race([
+      fetch(`${API_BASE_URL}/health`),
+      timeout
+    ]);
+    const health = await response.json();
+
+    figma.ui.postMessage({
+      type: "backend-status",
+      connected: response.ok && health.status === "running"
+    });
+  } catch (error) {
+    figma.ui.postMessage({
+      type: "backend-status",
+      connected: false
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+checkBackendHealth();
+setInterval(checkBackendHealth, 5000);
+
 function hasCriticalOperation() {
   return isAnalyzing || isGeneratingReport;
 }
@@ -254,7 +284,6 @@ function collectFrameData(scopeNodes) {
   });
 }
 
-// Collect the current Figma design and send it to the backend for analysis.
 async function runAnalysis(reason) {
   if (isAnalyzing) {
     sendStatus("Analysis is already running. Please wait.");
@@ -344,7 +373,6 @@ async function runAnalysis(reason) {
   }
 }
 
-// Debounce automatic scans triggered by Figma design changes.
 function scheduleRealtimeScan(reason) {
   if (!realtimeScanEnabled) {
     return;
@@ -374,7 +402,6 @@ function bindPageListener() {
   listeningPage.on("nodechange", handleNodeChange);
 }
 
-// Stop timers and page listeners before the plugin closes.
 function stopPluginProcesses() {
   realtimeScanEnabled = false;
   clearTimeout(scanTimer);
@@ -393,39 +420,7 @@ figma.on("currentpagechange", () => {
   scheduleRealtimeScan("page-change");
 });
 
-// Handle commands sent from the plugin UI.
 figma.ui.onmessage = async (msg) => {
-  if (msg.type === "check-backend") {
-    try {
-      const response = await fetch(`${API_BASE_URL}/health`);
-      const health = await response.json();
-
-      if (!response.ok || health.status !== "running") {
-        figma.ui.postMessage({
-          type: "backend-status",
-          connected: false,
-          message: "The Argus backend is not ready. Start it from the argus_backend folder with npm run dev, then try Start again."
-        });
-
-        return;
-      }
-
-      figma.ui.postMessage({
-        type: "backend-status",
-        connected: true,
-        message: "Connected to the Argus backend."
-      });
-    } catch (error) {
-      figma.ui.postMessage({
-        type: "backend-status",
-        connected: false,
-        message: "Could not connect to the Argus backend. Start it from the argus_backend folder with npm run dev, then try Start again."
-      });
-    }
-
-    return;
-  }
-
   if (msg.type === "analyze-selection") {
     runAnalysis("manual");
   }

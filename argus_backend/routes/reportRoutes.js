@@ -10,7 +10,6 @@ const {
 
 const router = express.Router();
 
-// Reports can be viewed, generated, exported, cancelled, or removed.
 router.get("/", getReports);
 router.get("/:id/export", exportReportById);
 router.patch("/:id/export/cancel", cancelReportExport);

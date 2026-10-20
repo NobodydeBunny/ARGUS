@@ -14,7 +14,6 @@ const {
   normalizeText
 } = require("./featureExtractor");
 
-// Convert colors into a format that is easy to show in feedback.
 const rgbToHex = (color) => {
   if (!color) return null;
 
@@ -57,7 +56,8 @@ const isNeutralColor = (color) => {
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
 
-  // Plain black, white, and gray usually do not describe a theme color.
+  // Ignoring black/white/gray style colors
+  // Not ignore saturated colors only because one channel is high
   const isGrayLike = (max - min) < 28;
   const isAlmostWhite = min > 242;
   const isAlmostBlack = max < 25;
@@ -86,7 +86,6 @@ const createColorEvidence = ({
 });
 
 const detectDominantThemeColorOutlier = (nodes, globalFeatures) => {
-  // Find a colored element that does not seem to belong to the main theme.
   const candidates = [];
 
   const coloredNodes = nodes
@@ -157,7 +156,6 @@ const detectDominantThemeColorOutlier = (nodes, globalFeatures) => {
 };
 
 const detectSameActionDifferentColors = (nodes, globalFeatures) => {
-  // Similar actions should not unexpectedly use different colors.
   const candidates = [];
   const actionGroups = {};
 
@@ -227,7 +225,6 @@ const detectSameActionDifferentColors = (nodes, globalFeatures) => {
 };
 
 const detectDifferentActionsSameColor = (nodes, globalFeatures) => {
-  // Different actions sharing one color can make their meaning unclear.
   const candidates = [];
 
   const actionNodes = nodes
@@ -284,7 +281,6 @@ const detectDifferentActionsSameColor = (nodes, globalFeatures) => {
 };
 
 const detectWeakErrorVisibility = (nodes, globalFeatures) => {
-  // Error messages should stand out enough to be noticed quickly.
   const candidates = [];
   const errorNodes = nodes.filter(isErrorNode);
 
@@ -299,7 +295,7 @@ const detectWeakErrorVisibility = (nodes, globalFeatures) => {
     const visibilityDistance = colorDistance(foreground, background);
     const label = normalizeText(`${node.name || ""} ${node.text || ""}`);
 
-    // See whether the design gives this error an obvious warning style.
+    // Detect whether the error element has explicit error-state clues.
     const hasVisualErrorStyle = label.includes("error") || label.includes("warning") || label.includes("danger") || label.includes("invalid");
 
     const lowContrastScore = ratio ? Math.max(0, (4.5 - ratio) / 4.5) : 0;
@@ -377,7 +373,6 @@ const detectWeakErrorVisibility = (nodes, globalFeatures) => {
   return candidates;
 };
 
-// Run all color and visibility checks for one frame.
 const analyzeColorPatterns = (designData) => {
   const nodes = getNodes(designData);
   const globalFeatures = buildGlobalFeatures(nodes, "color");

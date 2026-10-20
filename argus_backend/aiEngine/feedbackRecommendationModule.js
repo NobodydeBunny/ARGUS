@@ -1,6 +1,5 @@
 const { generateDynamicSuggestions } = require("./dynamicSuggestionGenerator");
 
-// Keep the priority wording simple for the UI.
 const getPriority = (severity) => {
   if (severity === "high") return "high";
   if (severity === "medium") return "medium";
@@ -8,7 +7,6 @@ const getPriority = (severity) => {
 };
 
 const applyRecommendations = (issues) => {
-  // Add a practical suggestion to every issue before it reaches the UI.
   return generateDynamicSuggestions(issues).map((issue) => {
     const confidence = Number(issue.confidenceScore || issue.evidenceScore || 0.6);
 
