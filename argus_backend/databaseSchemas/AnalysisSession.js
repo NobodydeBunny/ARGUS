@@ -1,3 +1,4 @@
+// Tracks the lifecycle of one analysis session.
 const { DataTypes } = require("sequelize");
 const sequelize = require("../database");
 

@@ -1,3 +1,4 @@
+// Builds report data and handles report export lifecycle requests.
 const { Analysis, AnalysisSession, DetectedIssue, Suggestion, Report } = require("../databaseSchemas");
 const { generateUsabilityReportPdf } = require("../utils/pdfReportGenerator");
 const buildReportData = async (analysisId) => {

@@ -1,3 +1,4 @@
+// Routes for listing, viewing, and terminating analysis sessions.
 const express = require("express");
 const {
   getSessions,

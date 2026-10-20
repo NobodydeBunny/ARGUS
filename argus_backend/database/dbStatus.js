@@ -1,3 +1,4 @@
+// Stores the latest database connectivity state for the health endpoint.
 let databaseAvailable = false;
 let lastDatabaseError = null;
 let lastCheckedAt = null;

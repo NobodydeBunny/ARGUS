@@ -1,3 +1,4 @@
+# Loads the trained UI model and predicts an issue label for one feature vector.
 import sys
 import json
 import joblib

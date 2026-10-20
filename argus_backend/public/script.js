@@ -1,3 +1,4 @@
+// Browser client for submitting analyses and generating reports.
 const API_URL = "http://localhost:5000/api";
 
 const analysisForm = document.getElementById("analysisForm");

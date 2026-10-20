@@ -1,3 +1,4 @@
+// Returns suggestions for the requested analysis issue set.
 const { Suggestion, DetectedIssue } = require("../databaseSchemas");
 
 const getSuggestions = async (req, res) => {

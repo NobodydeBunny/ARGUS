@@ -1,3 +1,4 @@
+// Maps issue types and severity to feedback recommendations.
 const { generateDynamicSuggestions } = require("./dynamicSuggestionGenerator");
 
 const getPriority = (severity) => {

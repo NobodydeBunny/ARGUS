@@ -21,6 +21,7 @@ function sendStatus(message) {
 }
 
 async function checkBackendHealth() {
+  // Keep the health check in the plugin context because it owns network access.
   let timeoutId;
 
   try {

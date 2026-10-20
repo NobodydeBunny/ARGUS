@@ -1,3 +1,4 @@
+// Express entry point, API routes, health checks, and server startup.
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
@@ -12,6 +13,7 @@ const {
 
 const app = express();
 
+// Allow the Figma plugin and local web client to call the API.
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.set("json spaces", 2);
@@ -34,6 +36,7 @@ app.get("/api/health", async (req, res) => {
   });
 });
 
+// Register the backend feature routes.
 app.use("/api/analysis", require("./routes/analysisRoutes"));
 app.use("/api/reports", require("./routes/reportRoutes"));
 app.use("/api/sessions", require("./routes/sessionRoutes"));
@@ -41,6 +44,7 @@ app.use("/api/suggestions", require("./routes/suggestionRoutes"));
 
 const PORT = process.env.PORT || 5000;
 
+// Refresh database status while the backend continues serving requests.
 const checkDatabaseConnection = async () => {
   try {
     await sequelize.authenticate();

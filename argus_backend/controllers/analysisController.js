@@ -1,4 +1,5 @@
 const sequelize = require("../database");
+// Validates analysis input, runs the AI pipeline, and persists results.
 const { Analysis, AnalysisSession, DetectedIssue, Suggestion } = require("../databaseSchemas");
 const analyzeDesign = require("../aiEngine/hybridAnalyzer");
 const { getDatabaseStatus } = require("../database/dbStatus");

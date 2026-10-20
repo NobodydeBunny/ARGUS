@@ -1,3 +1,4 @@
+// Defines the normalized issue shape used by analysis modules.
 const { predictWithTrainedModel, predictBatchWithTrainedModel } = require("./trainedModelAdapter");
 
 const labelDisplayNames = {
@@ -47,6 +48,7 @@ const fixTypeMap = {
 };
 
 const normalizeIssueLabel = (label) => {
+  // Model labels are normalized to the stable names used by the API and UI.
   const map = {
     missing_exit: "missing_exit_control",
     missing_undo: "destructive_without_undo",
@@ -65,6 +67,7 @@ const buildDefaultMessage = (label, candidate) => {
 };
 
 const buildClassifiedIssue = (candidate, prediction) => {
+  // Merge model output with detector evidence and design context.
   const predictedLabel = normalizeIssueLabel(prediction.issueLabel);
   const candidateLabel = normalizeIssueLabel(candidate.candidateType || candidate.type);
 
@@ -127,6 +130,7 @@ const classifyCandidate = (candidate) => {
 };
 
 const classifyCandidates = (candidates) => {
+  // Batch prediction keeps classification consistent across all detectors.
   if (!Array.isArray(candidates) || candidates.length === 0) {
     return [];
   }

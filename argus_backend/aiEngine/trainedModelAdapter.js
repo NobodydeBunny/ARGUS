@@ -1,3 +1,4 @@
+// Adapts trained model predictions to the backend issue format.
 const { execFileSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
@@ -39,6 +40,7 @@ const inferModuleName = (candidate) => {
 };
 
 const buildModelFeatures = (candidate) => {
+  // Select and normalize only the feature columns expected by the Python model.
   const moduleName = inferModuleName(candidate);
 
   const base = {
@@ -119,6 +121,7 @@ const fallbackPrediction = (candidate) => {
 };
 
 const canUsePythonModel = () => {
+  // Avoid invoking Python when the trained model files or runtime are unavailable.
   const scriptPath = getPredictScriptPath();
   const modelPath = getModelPath();
 
@@ -126,6 +129,7 @@ const canUsePythonModel = () => {
 };
 
 const normalizePrediction = (prediction, candidate) => {
+  // Convert Python output into the confidence and label shape used by Node.js.
   if (!prediction || prediction.error) {
     return fallbackPrediction(candidate);
   }
@@ -184,6 +188,7 @@ const predictBatchWithTrainedModel = (candidates) => {
 };
 
 const predictWithTrainedModel = (candidate) => {
+  // Invoke the model once for a candidate and preserve a safe fallback result.
   const predictions = predictBatchWithTrainedModel([candidate]);
   return predictions[0] || fallbackPrediction(candidate);
 };
