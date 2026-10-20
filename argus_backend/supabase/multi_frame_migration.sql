@@ -1,6 +1,7 @@
 -- ARGUS V6 multi-frame migration for an EXISTING Supabase database.
 -- Run once in Supabase Dashboard -> SQL Editor before starting this build.
 
+-- Add frame-level data needed for multi-frame analysis.
 alter table analysis_sessions
   add column if not exists frame_count integer default 0;
 

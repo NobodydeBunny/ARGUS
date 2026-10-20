@@ -1,3 +1,4 @@
+// Routes for generating, exporting, and cancelling reports.
 const express = require("express");
 const {
   generateReport,

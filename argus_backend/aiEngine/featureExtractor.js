@@ -1,3 +1,4 @@
+// Extracts normalized layout and interaction features from design metadata.
 const EXIT_KEYWORDS = [
   "close", "cancel", "back", "exit", "dismiss", "x", "return", "go back"
 ];
@@ -64,6 +65,7 @@ const numberOrZero = (value) => {
 
 const getNodes = (designData) => Array.isArray(designData.nodes) ? designData.nodes.filter(node => node && node.visible !== false) : [];
 
+// Parent links are used to infer containers and nearby background colors.
 const getChildren = (node, nodes) => nodes.filter(child => child.parentId === node.nodeId);
 
 const getPrimaryFillColor = (node) => {
@@ -135,6 +137,7 @@ const findNearestBackground = (node, nodes) => {
   const parentColor = getPrimaryFillColor(parent);
   if (parentColor) return parentColor;
 
+  // Prefer the smallest containing frame because it is usually the actual surface.
   const frames = nodes.filter(item => ["FRAME", "GROUP", "COMPONENT", "INSTANCE", "MODAL", "OVERLAY"].includes(String(item.type || "").toUpperCase()));
   const nodeX = numberOrZero(node.x);
   const nodeY = numberOrZero(node.y);
@@ -169,6 +172,7 @@ const isUndoNode = (node) => includesAny(getNodeLabel(node), UNDO_KEYWORDS);
 const isErrorNode = (node) => includesAny(getNodeLabel(node), ERROR_KEYWORDS);
 
 const isButtonLike = (node) => {
+  // Figma type, component metadata, and labels all contribute to classification.
   const type = String(node.type || "").toUpperCase();
   const label = getNodeLabel(node);
   return ["BUTTON", "RECTANGLE", "INSTANCE", "COMPONENT"].includes(type) ||
@@ -263,6 +267,7 @@ const getMainFrame = (nodes) => {
 };
 
 const buildGlobalFeatures = (nodes, moduleName = "normal") => {
+  // Shared measurements are attached to every candidate for model inference.
   const visibleNodes = nodes.filter(node => node.visible !== false);
   const mainFrame = getMainFrame(visibleNodes) || visibleNodes[0] || {};
   const screenWidth = numberOrZero(mainFrame.width);

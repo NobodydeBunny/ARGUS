@@ -1,3 +1,4 @@
+// Detects missing exits, confirmations, undo paths, and error visibility.
 const {
   getNodes,
   getChildren,
@@ -14,6 +15,7 @@ const {
 } = require("./featureExtractor");
 
 const getPrimaryFrame = (nodes) => {
+  // Use the largest frame as the context for screen-level error checks.
   const frames = nodes.filter(isFrameLike);
 
   if (frames.length === 0) {
@@ -35,6 +37,7 @@ const hasRelatedExitControl = (target, nodes) => {
 };
 
 const detectMissingBackCancelClose = (nodes, globalFeatures) => {
+  // Detect modal flows that do not provide a visible escape action.
   const candidates = [];
   const modalNodes = nodes.filter(node => isModalLike(node, nodes));
   const primaryFrame = getPrimaryFrame(nodes);
@@ -74,6 +77,7 @@ const detectMissingBackCancelClose = (nodes, globalFeatures) => {
 };
 
 const detectDestructiveWithoutUndo = (nodes, globalFeatures) => {
+  // Destructive actions should expose an undo or recovery path.
   const candidates = [];
   const destructiveNodes = nodes.filter(isDestructiveNode);
   const hasUndoOption = nodes.some(isUndoNode);
@@ -108,6 +112,7 @@ const detectDestructiveWithoutUndo = (nodes, globalFeatures) => {
 };
 
 const detectIrreversibleWithoutConfirmation = (nodes, globalFeatures) => {
+  // Irreversible actions should ask for confirmation before execution.
   const candidates = [];
   const destructiveNodes = nodes.filter(isDestructiveNode);
   const confirmationNodes = nodes.filter(isConfirmationNode);
@@ -144,6 +149,7 @@ const detectIrreversibleWithoutConfirmation = (nodes, globalFeatures) => {
 };
 
 const analyzeErrorHandlingPatterns = (designData) => {
+  // Combine error-handling candidates from the current frame.
   const nodes = getNodes(designData);
   const globalFeatures = buildGlobalFeatures(nodes, "error");
 

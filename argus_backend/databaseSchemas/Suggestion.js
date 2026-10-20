@@ -1,3 +1,4 @@
+// Stores actionable suggestions associated with detected issues.
 const { DataTypes } = require("sequelize");
 const sequelize = require("../database");
 

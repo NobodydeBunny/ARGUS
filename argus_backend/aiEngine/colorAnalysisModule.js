@@ -1,3 +1,4 @@
+// Detects usability problems related to color consistency and visibility.
 const {
   getNodes,
   getPrimaryFillColor,
@@ -31,6 +32,7 @@ const getRepresentativeNode = (items, fallback) => {
 };
 
 const averageColor = (items) => {
+  // Average colors provide a stable baseline for repeated visual elements.
   const valid = items.map(item => item.color || item).filter(Boolean);
   if (valid.length === 0) return null;
 
@@ -86,6 +88,7 @@ const createColorEvidence = ({
 });
 
 const detectDominantThemeColorOutlier = (nodes, globalFeatures) => {
+  // Find a common color family first, then identify elements that break it.
   const candidates = [];
 
   const coloredNodes = nodes
@@ -156,6 +159,7 @@ const detectDominantThemeColorOutlier = (nodes, globalFeatures) => {
 };
 
 const detectSameActionDifferentColors = (nodes, globalFeatures) => {
+  // The same action should normally use a consistent visual color.
   const candidates = [];
   const actionGroups = {};
 
@@ -225,6 +229,7 @@ const detectSameActionDifferentColors = (nodes, globalFeatures) => {
 };
 
 const detectDifferentActionsSameColor = (nodes, globalFeatures) => {
+  // Reusing one color for different actions can make controls ambiguous.
   const candidates = [];
 
   const actionNodes = nodes
@@ -281,6 +286,7 @@ const detectDifferentActionsSameColor = (nodes, globalFeatures) => {
 };
 
 const detectWeakErrorVisibility = (nodes, globalFeatures) => {
+  // Error controls are checked against their nearest background for contrast.
   const candidates = [];
   const errorNodes = nodes.filter(isErrorNode);
 
@@ -374,6 +380,7 @@ const detectWeakErrorVisibility = (nodes, globalFeatures) => {
 };
 
 const analyzeColorPatterns = (designData) => {
+  // Run color detectors using shared node and feature data.
   const nodes = getNodes(designData);
   const globalFeatures = buildGlobalFeatures(nodes, "color");
 

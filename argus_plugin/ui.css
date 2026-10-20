@@ -1,3 +1,4 @@
+/* Shared reset and typography for the plugin UI. */
 * {
       margin: 0;
       padding: 0;
@@ -17,6 +18,7 @@
       overflow-y: auto;
     }
 
+    /* Pages are switched by adding the active class. */
     .page {
       display: none;
       padding: 16px;
@@ -65,6 +67,7 @@
       margin-top: 3px;
     }
 
+    /* Backend and monitoring status colors. */
     .status-active {
       color: #1bb65c;
       font-size: 11px;

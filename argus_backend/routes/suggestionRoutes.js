@@ -1,3 +1,4 @@
+// Routes for retrieving suggestions linked to detected issues.
 const express = require("express");
 const {
   getSuggestions

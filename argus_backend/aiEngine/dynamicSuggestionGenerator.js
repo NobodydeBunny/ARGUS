@@ -1,3 +1,4 @@
+// Converts detected issue data into contextual user-facing suggestions.
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 const safeText = (value, fallback = "this element") => {
@@ -12,6 +13,7 @@ const roundNumber = (value, digits = 1) => {
 };
 
 const normalizeRgb = (color) => {
+  // Normalize Figma color values before comparing or describing them.
   if (!color) return null;
 
   if (typeof color === "string") {
@@ -76,6 +78,7 @@ const namedColors = [
 ];
 
 const getReadableColorName = (color) => {
+  // Use a human-readable nearest color name in generated recommendations.
   const rgb = normalizeRgb(color);
   const hex = rgbToHex(color);
 
@@ -169,6 +172,7 @@ const appendReviewReminder = (text, reminder) => {
 };
 
 const applyContextualReviewReminder = (feedback, label) => {
+  // Add a review reminder so automated feedback is not treated as intent.
   const reminder = getReviewReminder(label);
 
   const detailedSuggestion = appendReviewReminder(
@@ -185,6 +189,7 @@ const applyContextualReviewReminder = (feedback, label) => {
 };
 
 const createFeedback = ({ shortSuggestion, detailedSuggestion, explanation, evidenceSummary }) => ({
+  // Keep suggestion wording and supporting evidence in a consistent shape.
   shortSuggestion,
   detailedSuggestion,
   explanation,
@@ -399,6 +404,7 @@ const normalizeLabel = (issue) => {
 };
 
 const generateDynamicSuggestion = (issue) => {
+  // Select issue-specific guidance while retaining a safe generic fallback.
   const label = normalizeLabel(issue);
 
   let feedback;

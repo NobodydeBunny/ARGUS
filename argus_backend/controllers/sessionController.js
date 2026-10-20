@@ -1,3 +1,4 @@
+// Handles analysis session lookup and termination.
 const { AnalysisSession, Analysis, DetectedIssue, Suggestion, Report } = require("../databaseSchemas");
 
 const getSessions = async (req, res) => {

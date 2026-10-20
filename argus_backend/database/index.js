@@ -1,3 +1,4 @@
+// Creates the shared Sequelize connection used by all database models.
 const { Sequelize } = require("sequelize");
 
 if (!process.env.DATABASE_URL) {

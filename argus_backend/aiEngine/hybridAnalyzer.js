@@ -1,3 +1,4 @@
+// Combines rule-based checks with trained model analysis results.
 const { analyzeLayoutPatterns } = require("./layoutAnalysisModule");
 const { analyzeColorPatterns } = require("./colorAnalysisModule");
 const { analyzeErrorHandlingPatterns } = require("./errorHandlingModule");
@@ -11,6 +12,7 @@ const createDedupKey = (issue) => {
 };
 
 const deduplicateIssues = (issues) => {
+  // Keep the strongest finding when modules flag the same node and issue type.
   const issueMap = new Map();
 
   issues.forEach((issue) => {
@@ -67,6 +69,7 @@ const buildFrameGroups = (designData) => {
 };
 
 const analyzeDesign = (designData) => {
+  // Analyze each frame independently so findings retain their frame context.
   const frameGroups = buildFrameGroups(designData);
   const allCandidates = [];
 
@@ -97,6 +100,7 @@ const analyzeDesign = (designData) => {
     allCandidates.push(...frameCandidates);
   });
 
+  // Convert detector candidates into the common issue format, then add guidance.
   const classifiedIssues = classifyCandidates(allCandidates);
   const issuesWithRecommendations = applyRecommendations(classifiedIssues);
 

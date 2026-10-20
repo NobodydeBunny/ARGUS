@@ -1,4 +1,5 @@
 const AnalysisSession = require("./AnalysisSession");
+// Loads models and defines their associations in one place.
 const Analysis = require("./Analysis");
 const DetectedIssue = require("./DetectedIssue");
 const Suggestion = require("./Suggestion");

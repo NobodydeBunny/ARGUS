@@ -1,3 +1,4 @@
+// Persists the design analysis summary returned by the AI pipeline.
 const { DataTypes } = require("sequelize");
 const sequelize = require("../database");
 

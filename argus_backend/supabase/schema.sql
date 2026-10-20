@@ -3,6 +3,7 @@
 
 create extension if not exists pgcrypto;
 
+-- Core session, analysis, issue, suggestion, and report tables.
 create table if not exists analysis_sessions (
   id uuid primary key default gen_random_uuid(),
   design_name varchar(255) not null,

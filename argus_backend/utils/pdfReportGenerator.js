@@ -1,3 +1,4 @@
+// Builds the formatted PDF report from analysis and issue data.
 const PDFDocument = require("pdfkit");
 const path = require("path");
 const fs = require("fs");

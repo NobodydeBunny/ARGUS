@@ -1,3 +1,4 @@
+// Page elements used by the single-page plugin interface.
 const pages = {
   welcome: document.getElementById("welcomePage"),
   dashboard: document.getElementById("dashboardPage"),
@@ -73,6 +74,7 @@ const reportTopIssues =
 const reportStatusOutput =
   document.getElementById("reportStatusOutput");
 
+// State shared by dashboard, results, and report pages.
 let currentAnalysisId = null;
 let currentReportId = null;
 let isScanning = false;
@@ -81,9 +83,7 @@ let latestReport = null;
 let latestDesignData = null;
 
 
-/* =========================================================
-   PAGE NAVIGATION
-   ========================================================= */
+/* Page navigation */
 
 function showPage(pageName) {
   Object.values(pages).forEach(page =>
@@ -94,9 +94,7 @@ function showPage(pageName) {
 }
 
 
-/* =========================================================
-   PLUGIN COMMUNICATION
-   ========================================================= */
+/* Messages sent to the Figma plugin controller. */
 
 function sendPluginMessage(message) {
   parent.postMessage(
@@ -108,9 +106,7 @@ function sendPluginMessage(message) {
 }
 
 
-/* =========================================================
-   STATUS
-   ========================================================= */
+/* Shared status message output for analysis and report actions. */
 
 function setStatus(message, isError = false) {
   statusOutput.textContent = message;
@@ -144,9 +140,7 @@ function requestPluginClose() {
 }
 
 
-/* =========================================================
-   SCANNING UI
-   ========================================================= */
+/* Updates scan controls without changing the backend status. */
 
 function updateScanningUi() {
   scanToggleBtn.textContent = isScanning
@@ -163,6 +157,7 @@ function updateScanningUi() {
 
 }
 
+// The backend check is reported by code.js in the plugin context.
 function updateBackendStatus(status) {
   monitorStatusText.classList.remove(
     "status-active",
@@ -180,9 +175,7 @@ function updateBackendStatus(status) {
 }
 
 
-/* =========================================================
-   SEVERITY HELPERS
-   ========================================================= */
+/* Issue severity and count helpers. */
 
 function getSeverityClass(severity) {
   if (severity === "high") {
@@ -227,9 +220,7 @@ function getIssueCounts(issues) {
 }
 
 
-/* =========================================================
-   TEXT HELPERS
-   ========================================================= */
+/* Text helpers keep dynamic issue content safe for HTML output. */
 
 function safeText(value, fallback = "N/A") {
   return value == null || value === ""
@@ -258,9 +249,7 @@ function getDynamicSuggestion(issue) {
 }
 
 
-/* =========================================================
-   FRAME-STRUCTURED METADATA
-   ========================================================= */
+/* Formats design metadata for the extracted JSON preview. */
 
 /*
  * This function only restructures the metadata that is
@@ -652,9 +641,7 @@ function renderAnalysis(analysis) {
 }
 
 
-/* =========================================================
-   BUTTON EVENTS
-   ========================================================= */
+/* Button handlers for navigation, analysis, scanning, and reports. */
 
 startBtn.onclick = () => {
   showPage("dashboard");
@@ -857,9 +844,7 @@ cancelExportBtn.onclick = () => {
 };
 
 
-/* =========================================================
-   MESSAGES FROM FIGMA PLUGIN
-   ========================================================= */
+/* Results and status messages received from code.js. */
 
 onmessage = event => {
   const msg =
@@ -1051,8 +1036,6 @@ onmessage = event => {
 };
 
 
-/* =========================================================
-   INITIAL STATE
-   ========================================================= */
+/* Initialize controls after the bundled UI loads. */
 
 updateScanningUi();

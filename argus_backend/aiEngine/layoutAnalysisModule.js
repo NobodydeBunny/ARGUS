@@ -1,3 +1,4 @@
+// Detects spacing, alignment, sizing, and layout consistency issues.
 const {
   getNodes,
   getChildren,
@@ -18,6 +19,7 @@ const {
 } = require("./featureExtractor");
 
 const getPrimaryContainer = (nodes) => {
+  // Use the largest frame as the best approximation of the visible screen.
   const frames = nodes.filter(isFrameLike);
 
   if (frames.length === 0) {
@@ -33,6 +35,7 @@ const getPrimaryContainer = (nodes) => {
 };
 
 const median = (values) => {
+  // Median is less affected by one unusually large or small UI element.
   const valid = values.map(Number).filter(Number.isFinite).sort((a, b) => a - b);
   if (valid.length === 0) return 0;
   const middle = Math.floor(valid.length / 2);
@@ -58,6 +61,7 @@ const getMostDifferentNumber = (items, valueGetter, expectedValue) => {
 };
 
 const detectModalWithoutExit = (nodes, globalFeatures) => {
+  // Modal-like containers should always expose a clear way to leave them.
   const candidates = [];
   const modalNodes = nodes.filter(node => isModalLike(node, nodes));
 
@@ -107,6 +111,7 @@ const detectSpacingInconsistency = (nodes, globalFeatures) => {
 
   if (layoutTargets.length < 3) return candidates;
 
+  // Prefer measured vertical gaps, then fall back to explicit auto-layout spacing.
   const verticalGaps = calculateVerticalGaps(layoutTargets);
   const explicitSpacingValues = layoutTargets
     .map(node => node.itemSpacing || node.spacing)
@@ -124,6 +129,7 @@ const detectSpacingInconsistency = (nodes, globalFeatures) => {
     return Math.abs(value - expectedSpacing) > Math.abs(best - expectedSpacing) ? value : best;
   }, spacingValues[0]);
 
+  // Small variation is normal; report only a meaningful repeated-pattern break.
   if (maxGap < 12 && spacingDeviation < 8) return candidates;
 
   const sortedTargets = [...layoutTargets]
@@ -180,6 +186,7 @@ const detectButtonShapeInconsistency = (nodes, globalFeatures) => {
   const heightOutlier = getMostDifferentNumber(buttons, node => numberOrZero(node.height), expectedHeight);
   const widthOutlier = getMostDifferentNumber(buttons, node => numberOrZero(node.width), expectedWidth);
 
+  // Pick the dimension that provides the strongest evidence for the outlier.
   const strongest = [
     { kind: "cornerRadius", ...radiusOutlier },
     { kind: "height", ...heightOutlier },
@@ -226,6 +233,7 @@ const detectButtonShapeInconsistency = (nodes, globalFeatures) => {
 
 const detectAlignmentInconsistency = (nodes, globalFeatures) => {
   const candidates = [];
+  // Alignment statistics compare repeated controls against the dominant axis.
   const alignmentStats = calculateAlignmentStats(nodes);
 
   if (!alignmentStats || alignmentStats.alignmentDeviation < 12 || alignmentStats.misalignedElementCount < 1) {
@@ -267,6 +275,7 @@ const detectAlignmentInconsistency = (nodes, globalFeatures) => {
 
 const detectOverloadedScreen = (nodes, globalFeatures) => {
   const candidates = [];
+  // Density is evaluated against the primary screen rather than the whole payload.
   const container = getPrimaryContainer(nodes);
 
   if (!container) return candidates;
@@ -316,6 +325,7 @@ const detectOverloadedScreen = (nodes, globalFeatures) => {
 };
 
 const analyzeLayoutPatterns = (designData) => {
+  // Run independent layout detectors over one normalized frame payload.
   const nodes = getNodes(designData);
   const globalFeatures = buildGlobalFeatures(nodes, "layout");
 

@@ -1,3 +1,4 @@
+// Stores generated report metadata linked to an analysis.
 const { DataTypes } = require("sequelize");
 const sequelize = require("../database");
 

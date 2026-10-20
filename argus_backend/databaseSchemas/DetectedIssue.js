@@ -1,3 +1,4 @@
+// Stores individual usability issues detected during an analysis.
 const { DataTypes } = require("sequelize");
 const sequelize = require("../database");
 
