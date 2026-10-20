@@ -1,4 +1,3 @@
-// This small page talks directly to the local Argus backend.
 const API_URL = "http://localhost:5000/api";
 
 const analysisForm = document.getElementById("analysisForm");
@@ -7,12 +6,10 @@ const reportResult = document.getElementById("reportResult");
 const generateReportBtn = document.getElementById("generateReportBtn");
 const exportLink = document.getElementById("exportLink");
 
-// Keep the latest records so the report button knows what to use.
 let currentAnalysisId = null;
 let currentReportId = null;
 
 analysisForm.addEventListener("submit", async (event) => {
-  // Send the values from the demo form for a quick analysis.
   event.preventDefault();
 
   const designData = {
@@ -34,7 +31,6 @@ analysisForm.addEventListener("submit", async (event) => {
 
     const data = await response.json();
 
-    // Show the response and make report generation available.
     currentAnalysisId = data._id;
     currentReportId = null;
 
@@ -53,7 +49,6 @@ generateReportBtn.addEventListener("click", async () => {
   }
 
   try {
-    // Build a report from the analysis that was just created.
     const response = await fetch(`${API_URL}/reports/generate`, {
       method: "POST",
       headers: {

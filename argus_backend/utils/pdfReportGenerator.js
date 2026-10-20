@@ -35,7 +35,6 @@ const logoPath = path.join(
   "argus_logo.jpeg"
 );
 
-// Put the logo in a box without stretching it.
 const drawLogo = (doc, x, y, maxWidth, maxHeight) => {
   if (!fs.existsSync(logoPath)) return 0;
 
@@ -63,7 +62,6 @@ const drawLogo = (doc, x, y, maxWidth, maxHeight) => {
 // ---------------------------------------------------------------------------
 // Formatting helpers
 // ---------------------------------------------------------------------------
-// These helpers keep the report text readable even when some data is missing.
 
 const getValue = (source, keys, fallback = "-") => {
   if (!source) return fallback;
@@ -256,7 +254,6 @@ const getAnalyzedFrameNames = (
 // ---------------------------------------------------------------------------
 // Layout primitives
 // ---------------------------------------------------------------------------
-// Small drawing helpers used to keep the PDF pages looking consistent.
 
 const ensureSpace = (
   doc,
@@ -571,7 +568,6 @@ const drawTextSection = (
 // ---------------------------------------------------------------------------
 // Cover page
 // ---------------------------------------------------------------------------
-// The first page gives the report its title and a quick overview.
 
 const drawCoverHeader = (
   doc,
@@ -886,7 +882,6 @@ const drawSummaryCards = (
 // ---------------------------------------------------------------------------
 // Issues at a Glance
 // ---------------------------------------------------------------------------
-// Summarize the important findings before showing every detail.
 
 const drawOverview = (
   doc,
@@ -1123,7 +1118,6 @@ const drawOverview = (
 // ---------------------------------------------------------------------------
 // Individual issue detail cards
 // ---------------------------------------------------------------------------
-// Each issue gets its own explanation, evidence, and suggested next step.
 
 const findSuggestion = (
   issue,
@@ -1695,7 +1689,6 @@ const groupIssuesByFrame = (issues) => {
 // ---------------------------------------------------------------------------
 // Action plan
 // ---------------------------------------------------------------------------
-// Finish with a practical list of things the designer can work on.
 
 const drawActionPlan = (
   doc,
@@ -2013,7 +2006,6 @@ const addPageNumbers = (doc) => {
 // ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
-// Build the complete PDF and return it as a buffer for download.
 
 const generateUsabilityReportPdf = ({
   analysis,

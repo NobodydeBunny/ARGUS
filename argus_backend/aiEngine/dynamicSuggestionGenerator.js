@@ -1,4 +1,3 @@
-// Small helpers keep the feedback text tidy and forgiving of missing data.
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 const safeText = (value, fallback = "this element") => {
@@ -76,7 +75,6 @@ const namedColors = [
   { name: "gray", rgb: { r: 130, g: 130, b: 130 } }
 ];
 
-// Turn a raw color into a name people can understand in a suggestion.
 const getReadableColorName = (color) => {
   const rgb = normalizeRgb(color);
   const hex = rgbToHex(color);
@@ -102,16 +100,98 @@ const describeColor = (color) => {
 
 const sentenceJoin = (parts) => parts.filter(Boolean).join(" ");
 
+const reviewReminderMap = {
+  color_inconsistency:
+    "Check whether the different color is intentional because of brand style, status, priority, or a separate section before changing it.",
+
+  same_action_uses_different_colors:
+    "Check whether these elements really perform the same action before making their colors identical.",
+
+  same_color_different_actions:
+    "Check whether the shared color is intentional in the design system before assigning different colors.",
+
+  different_actions_use_the_same_color:
+    "Check whether these actions have different meanings, such as primary, secondary, cancel, warning, or destructive, before changing their colors.",
+
+  weak_error_visibility:
+    "Check whether increasing the visibility of this error message improves clarity without disturbing the surrounding visual hierarchy.",
+
+  low_contrast_error_message:
+    "Check the background and nearby text before changing the error color, so the final message remains readable and consistent.",
+
+  poor_error_state_styling:
+    "Check whether this state is truly an error, warning, or helper message before applying strong error styling.",
+
+  spacing_inconsistency:
+    "Check whether the spacing difference is intentional to separate different sections, groups, or hierarchy levels before adjusting it.",
+
+  button_shape_inconsistency:
+    "Check whether this button belongs to the same button family as the compared buttons before changing its size, radius, or shape.",
+
+  alignment_inconsistency:
+    "Check whether this element belongs to the same row, column, card, or section before moving it to match another alignment group.",
+
+  overloaded_screen:
+    "Check the user's main task before removing, hiding, or grouping controls, because some elements may be necessary for the workflow.",
+
+  missing_exit_control:
+    "Check whether the current flow already provides another clear way to go back, cancel, close, or dismiss before adding a new exit control.",
+
+  modal_without_exit:
+    "Check whether the dialog should be dismissible. Some critical dialogs may require a deliberate choice instead of a simple close action.",
+
+  destructive_without_undo:
+    "Check whether this action is truly destructive and whether undo, restore, or recovery is suitable for the user flow.",
+
+  irreversible_without_confirmation:
+    "Check whether this action is truly irreversible or high-risk before adding a confirmation step."
+};
+
+const fallbackReviewReminder =
+  "Review the surrounding section, group, and user flow before applying this suggestion.";
+
+const getReviewReminder = (label) => {
+  return reviewReminderMap[label] || fallbackReviewReminder;
+};
+
+const appendReviewReminder = (text, reminder) => {
+  const originalText = text || "";
+
+  if (originalText.includes("Designer check:")) {
+    return originalText;
+  }
+
+  if (!originalText) {
+    return `Designer check: ${reminder}`;
+  }
+
+  return `${originalText}\n\nDesigner check: ${reminder}`;
+};
+
+const applyContextualReviewReminder = (feedback, label) => {
+  const reminder = getReviewReminder(label);
+
+  const detailedSuggestion = appendReviewReminder(
+    feedback.detailedSuggestion || feedback.shortSuggestion,
+    reminder
+  );
+
+  return {
+    ...feedback,
+    detailedSuggestion,
+    recommendation: detailedSuggestion,
+    reviewReminder: reminder
+  };
+};
+
 const createFeedback = ({ shortSuggestion, detailedSuggestion, explanation, evidenceSummary }) => ({
   shortSuggestion,
   detailedSuggestion,
   explanation,
   evidenceSummary,
-  // Existing plugin/database fields still read `recommendation`, so keep it populated.
   recommendation: detailedSuggestion || shortSuggestion
 });
 
-// The following builders turn each issue type into plain design advice.
 const buildColorInconsistencyFeedback = (issue) => {
   const evidence = issue.evidence || {};
   const nodeName = safeText(issue.nodeName);
@@ -128,7 +208,7 @@ const buildColorInconsistencyFeedback = (issue) => {
     shortSuggestion: `Change ${nodeName} from ${actualDescription} to ${expectedDescription}.`,
     detailedSuggestion: sentenceJoin([
       `${nodeName}${actionType} uses ${actualDescription}, but the dominant visual pattern in this design uses ${expectedDescription}.`,
-      `This breaks color consistency and can make the element look like it belongs to a different theme or action group.`,
+      "This breaks color consistency and can make the element look like it belongs to a different theme or action group.",
       `Update ${nodeName} to ${expectedDescription} so it follows the established UI color pattern.`
     ]),
     explanation: similarCount
@@ -318,7 +398,6 @@ const normalizeLabel = (issue) => {
   return String(label).toLowerCase().replace(/\s+/g, "_");
 };
 
-// Choose the right kind of advice for the issue we found.
 const generateDynamicSuggestion = (issue) => {
   const label = normalizeLabel(issue);
 
@@ -378,15 +457,16 @@ const generateDynamicSuggestion = (issue) => {
       break;
   }
 
+  const reviewedFeedback = applyContextualReviewReminder(feedback, label);
+
   return {
     ...issue,
-    ...feedback,
-    
+    ...reviewedFeedback,
+
     generatedBy: "Argus Dynamic AI Feedback Generator v1.0"
   };
 };
 
-// Add suggestions to all findings in the same shape.
 const generateDynamicSuggestions = (issues) => issues.map(generateDynamicSuggestion);
 
 module.exports = {

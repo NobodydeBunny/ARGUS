@@ -1,4 +1,3 @@
-// References to the plugin's four UI pages.
 const pages = {
   welcome: document.getElementById("welcomePage"),
   dashboard: document.getElementById("dashboardPage"),
@@ -74,23 +73,18 @@ const reportTopIssues =
 const reportStatusOutput =
   document.getElementById("reportStatusOutput");
 
-// UI state shared by the dashboard, results, and report pages.
 let currentAnalysisId = null;
 let currentReportId = null;
 let isScanning = false;
 let latestAnalysis = null;
 let latestReport = null;
 let latestDesignData = null;
-let backendConnected = false;
-let backendCheckTimer = null;
-const BACKEND_CHECK_INTERVAL_MS = 3000;
 
 
 /* =========================================================
    PAGE NAVIGATION
    ========================================================= */
 
-// Display one page and hide the others.
 function showPage(pageName) {
   Object.values(pages).forEach(page =>
     page.classList.remove("active")
@@ -101,10 +95,9 @@ function showPage(pageName) {
 
 
 /* =========================================================
-   PLUGIN COMMUNICATION.
+   PLUGIN COMMUNICATION
    ========================================================= */
 
-// Send a command from the UI iframe to code.js.
 function sendPluginMessage(message) {
   parent.postMessage(
     {
@@ -119,7 +112,6 @@ function sendPluginMessage(message) {
    STATUS
    ========================================================= */
 
-// Update the status text shown on the dashboard and report pages.
 function setStatus(message, isError = false) {
   statusOutput.textContent = message;
   statusOutput.classList.toggle("error", isError);
@@ -169,43 +161,21 @@ function updateScanningUi() {
     !isScanning
   );
 
-  monitorStatusText.textContent = !backendConnected
-    ? "● BACKEND NOT CONNECTED"
-    : isScanning
-      ? "● MONITORING ACTIVE"
-      : "● READY";
+}
 
-  monitorStatusText.classList.toggle(
+function updateBackendStatus(status) {
+  monitorStatusText.classList.remove(
     "status-active",
-    backendConnected
+    "status-inactive"
   );
 
-  monitorStatusText.classList.toggle(
-    "status-error",
-    !backendConnected
-  );
-
-}
-
-
-function checkBackendConnection() {
-  sendPluginMessage({
-    type: "check-backend"
-  });
-}
-
-
-// Keep checking until the backend is available.
-function startBackendPolling() {
-  if (backendCheckTimer) {
-    return;
-  }
-
-  checkBackendConnection();
-
-  backendCheckTimer = setInterval(
-    checkBackendConnection,
-    BACKEND_CHECK_INTERVAL_MS
+  monitorStatusText.textContent = status === "connected"
+    ? "● READY"
+    : "● BACKEND NOT CONNECTED";
+  monitorStatusText.classList.add(
+    status === "connected"
+      ? "status-active"
+      : "status-inactive"
   );
 }
 
@@ -686,18 +656,12 @@ function renderAnalysis(analysis) {
    BUTTON EVENTS
    ========================================================= */
 
-// Start opens the dashboard and begins backend health checks.
 startBtn.onclick = () => {
   showPage("dashboard");
 
-  backendConnected = false;
-  updateScanningUi();
-
   setStatus(
-    "Backend not connected. Retrying automatically..."
+    "Select one or more Figma layers, then run analysis."
   );
-
-  startBackendPolling();
 };
 
 
@@ -897,7 +861,6 @@ cancelExportBtn.onclick = () => {
    MESSAGES FROM FIGMA PLUGIN
    ========================================================= */
 
-// Receive analysis, report, scan, and backend messages from code.js.
 onmessage = event => {
   const msg =
     event.data.pluginMessage;
@@ -1042,34 +1005,6 @@ onmessage = event => {
 
 
   /*
-   * Backend connection status
-   */
-  if (
-    msg.type ===
-    "backend-status"
-  ) {
-    if (!msg.connected) {
-      backendConnected = false;
-      updateScanningUi();
-
-      setStatus(
-        "Backend not connected. Retrying automatically...",
-        true
-      );
-
-      return;
-    }
-
-    backendConnected = true;
-    updateScanningUi();
-
-    setStatus(
-      "Connected to the Argus backend. Select one or more Figma layers, then run analysis."
-    );
-  }
-
-
-  /*
    * Processing limitation
    */
   if (
@@ -1108,6 +1043,10 @@ onmessage = event => {
       msg.message,
       true
     );
+  }
+
+  if (msg.type === "backend-status") {
+    updateBackendStatus(msg.connected ? "connected" : "disconnected");
   }
 };
 

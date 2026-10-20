@@ -4,7 +4,6 @@ const { analyzeErrorHandlingPatterns } = require("./errorHandlingModule");
 const { classifyCandidates } = require("./uiIssueModel");
 const { applyRecommendations } = require("./feedbackRecommendationModule");
 
-// Keep one simple name for each issue so repeated findings do not pile up.
 const createDedupKey = (issue) => {
   const frameReference = issue.frameId || issue.frameName || "frame";
   const nodeReference = issue.nodeId || issue.nodeName || "design";
@@ -44,7 +43,7 @@ const buildFrameGroups = (designData) => {
       }));
   }
 
-  // Older plugin data may not have frames, so group the old flat list here.
+  // Backward compatibility for older flat metadata payloads.
   const groups = new Map();
   const nodes = Array.isArray(designData.nodes) ? designData.nodes : [];
 
@@ -68,7 +67,6 @@ const buildFrameGroups = (designData) => {
 };
 
 const analyzeDesign = (designData) => {
-  // This is the main trip through the AI checks for a selected design.
   const frameGroups = buildFrameGroups(designData);
   const allCandidates = [];
 
@@ -82,7 +80,6 @@ const analyzeDesign = (designData) => {
       nodes: frame.nodes
     };
 
-    // Each checker looks at a different kind of design problem.
     const layoutCandidates = analyzeLayoutPatterns(frameData);
     const colorCandidates = analyzeColorPatterns(frameData);
     const errorHandlingCandidates = analyzeErrorHandlingPatterns(frameData);
@@ -100,7 +97,6 @@ const analyzeDesign = (designData) => {
     allCandidates.push(...frameCandidates);
   });
 
-  // Turn raw findings into friendly issues, then attach suggestions.
   const classifiedIssues = classifyCandidates(allCandidates);
   const issuesWithRecommendations = applyRecommendations(classifiedIssues);
 

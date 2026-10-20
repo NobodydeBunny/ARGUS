@@ -1,6 +1,5 @@
 const { AnalysisSession, Analysis, DetectedIssue, Suggestion, Report } = require("../databaseSchemas");
 
-// Show the most recent analysis sessions first.
 const getSessions = async (req, res) => {
   try {
     const sessions = await AnalysisSession.findAll({ order: [["createdAt", "DESC"]] });
@@ -11,7 +10,6 @@ const getSessions = async (req, res) => {
 };
 
 const getSessionById = async (req, res) => {
-  // Load a session together with everything created during it.
   try {
     const session = await AnalysisSession.findByPk(req.params.id);
     if (!session) return res.status(404).json({ message: "Session not found" });
@@ -38,7 +36,6 @@ const getSessionById = async (req, res) => {
 };
 
 const terminateSession = async (req, res) => {
-  // Close a session safely after any running analysis has finished.
   try {
     const session = await AnalysisSession.findByPk(req.params.id);
     if (!session) return res.status(404).json({ message: "Session not found" });

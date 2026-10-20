@@ -8,7 +8,6 @@ const {
 
 const router = express.Router();
 
-// These routes handle creating and viewing design analyses.
 router.get("/", getAnalyses);
 router.get("/:id", getAnalysisById);
 router.post("/", createAnalysis);
